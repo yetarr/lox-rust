@@ -57,7 +57,7 @@ impl Lox {
         for tkn in tkns {
             println!("{:?}", tkn);
         }
-    
+
         Ok(())
     }
 

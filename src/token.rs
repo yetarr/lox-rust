@@ -6,26 +6,28 @@ pub struct Token {
     ln: usize
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenT {
     // Single-character tokens
-    LEFTPAREN, RIGHTPAREN, LEFTBRACE, RIGHTBRACE,
-    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+    LeftParen, RightParen, LeftBrace, RightBrace,
+    Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
 
     // One or two character tokens
-    BANG, BANGEQUAL,
-    EQUAL, EQUALEQUAL,
-    GREATER, GREATEREQUAL,
-    LESS, LESSEQUAL,
+    Bang, BangEqual,
+    Equal, EqualEqual,
+    Greater, GreaterEqual,
+    Less, LessEqual,
 
     // Literals
-    IDENTIFIER(String), STRING(String), NUMBER(f64),
-
-    // Keywords
-    AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-    PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, 
+    Keyword(Keyword), Identifier, String(String), Number(f64),
 
     EOF
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Keyword {
+    And, Class, Else, False, Fun, For, If, Nil, Or,
+    Print, Return, Super, This, True, Var, While, 
 }
 
 impl Token {
