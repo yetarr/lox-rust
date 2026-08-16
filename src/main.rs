@@ -1,6 +1,6 @@
 use std::{env, process::exit};
-
 use anyhow::Result;
+
 use lox_rust::lox;
 
 fn main() -> Result<()> {

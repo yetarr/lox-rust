@@ -1,9 +1,10 @@
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
-    token_t: TokenT,
-    lex: String,
-    ln: usize
+    pub token_t: TokenT,
+    pub lex: String,
+    pub lit: LitVal,
+    pub ln: usize
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +20,7 @@ pub enum TokenT {
     Less, LessEqual,
 
     // Literals
-    Keyword(Keyword), Identifier, String(String), Number(f64),
+    Keyword(Keyword), Identifier, Literal,
 
     EOF
 }
@@ -30,11 +31,31 @@ pub enum Keyword {
     Print, Return, Super, This, True, Var, While, 
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum LitVal {
+    String(String),
+    Number(f64),
+    Boolean(bool),
+    Nil,
+}
+
+impl LitVal {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::String(s)  => s.clone(),
+            Self::Number(n)  => n.to_string(),
+            Self::Boolean(b) => b.to_string(),
+            Self::Nil        => String::from("nil")
+        }
+    }
+}
+
 impl Token {
-    pub fn new(token_t: TokenT, lex: String, ln: usize) -> Self {
+    pub fn new(token_t: TokenT, lex: String, lit: LitVal, ln: usize) -> Self {
         Token {
             token_t,
             lex,
+            lit,
             ln
         }
     }

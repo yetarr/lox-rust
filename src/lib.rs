@@ -1,4 +1,4 @@
 pub mod lox;
-pub mod token;
-pub mod scanner;
+pub mod lexer;
+pub mod parser;
 pub mod utils;

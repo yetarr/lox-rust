@@ -4,7 +4,7 @@ use std::io::{Write, stdin, stdout};
 
 use anyhow::Result;
 
-use crate::scanner::Scanner;
+use crate::lexer::scanner::Scanner;
 
 pub struct Lox {
     had_err: bool,

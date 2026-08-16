@@ -1,6 +1,7 @@
 use phf::phf_map;
 
-use crate::{lox::Lox, token::{Keyword, Token, TokenT}, utils};
+use crate::{lox::Lox, utils};
+use super::token::{Keyword, Token, TokenT, LitVal};
 
 pub struct Scanner {
     src: String,
@@ -152,11 +153,15 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token_t: TokenT) {
+        self.add_token_lit(token_t, LitVal::Nil);
+    }
+
+    fn add_token_lit(&mut self, token_t: TokenT, lit: LitVal) {
         let mut txt = "";
         if token_t != TokenT::EOF {
             txt = &self.src[self.start..self.cur];
         }
-        self.tkns.push(Token::new(token_t, txt.to_string(), self.ln));
+        self.tkns.push(Token::new(token_t, txt.to_string(), lit, self.ln));
     }
 
     fn cur_char(&self) -> char {
@@ -177,7 +182,7 @@ impl Scanner {
         self.advance();
 
         let lit = &self.src[self.start + 1..self.cur - 1];
-        self.add_token(TokenT::String(lit.to_string()));
+        self.add_token_lit(TokenT::Literal, LitVal::String(lit.to_string()));
     }
 
     fn number(&mut self) {
@@ -189,7 +194,7 @@ impl Scanner {
         }
 
         let lit = self.src[self.start..self.cur].parse::<f64>().unwrap();
-        self.add_token(TokenT::Number(lit));
+        self.add_token_lit(TokenT::Literal, LitVal::Number(lit));
     }
 
     fn identifier(&mut self) {
@@ -197,7 +202,11 @@ impl Scanner {
 
         let id = &self.src[self.start..self.cur];
         match lookup_keyword(id) {
-            Some(tt) => self.add_token(tt),
+            Some(tt) => match tt {
+                TokenT::Keyword(Keyword::True)  => self.add_token_lit(tt, LitVal::Boolean(true)),
+                TokenT::Keyword(Keyword::False) => self.add_token_lit(tt, LitVal::Boolean(false)),
+                _ => self.add_token(tt)
+            },
             None => self.add_token(TokenT::Identifier),
         }
     }
