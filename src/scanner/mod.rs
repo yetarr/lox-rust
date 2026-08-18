@@ -1,14 +1,17 @@
+pub mod token;
+
 use phf::phf_map;
 
 use crate::{lox::Lox, utils};
-use super::token::{Keyword, Token, TokenT, LitVal};
+use token::{Keyword, Token, TokenT, LitVal};
 
-pub struct Scanner {
+pub struct Scanner<'a> {
     src: String,
     tkns: Vec<Token>,
     start: usize,
     cur: usize,
-    ln: usize
+    ln: usize,
+    lox: &'a mut Lox
 }
 
 static KEYWORDS: phf::Map<&'static str, Keyword> = phf_map! {
@@ -37,32 +40,33 @@ fn lookup_keyword(ident: &str) -> Option<TokenT> {
     None
 }
 
-impl Scanner {
-    pub fn new(src: String) -> Self {
+impl<'a> Scanner<'a> {
+    pub fn new(src: String, lox: &'a mut Lox) -> Self {
         Scanner {
             src,
             tkns: Vec::new(),
             start: 0,
             cur: 0,
-            ln: 1 ,
+            ln: 1,
+            lox,
         }
     }
 
-    pub fn scan_tokens(&mut self, mut lox: &mut Lox) -> &Vec<Token> {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.cur;
-            self.scan_token(&mut lox);
+            self.scan_token();
         }
 
         self.add_token(TokenT::EOF);
-        &self.tkns
+        std::mem::take(&mut self.tkns)
     }
 
     fn is_at_end(&self) -> bool {
         self.cur >= self.src.len()
     }
 
-    fn scan_token(&mut self, lox: &mut Lox) {
+    fn scan_token(&mut self) {
         let c = self.advance();
         match c {
             ' ' | '\r' | '\t' => {}
@@ -106,24 +110,24 @@ impl Scanner {
 
                     if !self.is_at_end() { self.advance(); }
                     else { 
-                        lox.error(self.ln, "Unterminated block comment");
+                        self.lox.error_simple(self.ln, "Unterminated block comment");
                         return;
                     }
                     
                     if !self.is_at_end() { self.advance(); }
-                    else { lox.error(self.ln, "Unterminated block comment"); }
+                    else { self.lox.error_simple(self.ln, "Unterminated block comment"); }
                 } else {
                     self.add_token(TokenT::Slash);
                 }
             }
-            '"'  => self.string(lox),
+            '"'  => self.string(),
             _    => {
                 if utils::is_number(c) {
                     self.number();
                 } else if utils::is_alpha(c) {
                     self.identifier();
                 } else {
-                    lox.error(self.ln, "Unexpected character");
+                    self.lox.error_simple(self.ln, "Unexpected character");
                 }
             },
         }
@@ -168,14 +172,14 @@ impl Scanner {
         self.src.as_bytes()[self.cur - 1] as char
     }
 
-    fn string(&mut self, lox: &mut Lox) {
+    fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' { self.ln += 1 }
             self.advance();
         }
 
         if self.is_at_end() {
-            lox.error(self.ln, "Unterminated string");
+            self.lox.error_simple(self.ln, "Unterminated string");
             return;
         }
 

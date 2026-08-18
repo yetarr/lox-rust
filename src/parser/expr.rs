@@ -1,4 +1,6 @@
-use crate::lexer::token::{LitVal, Token};
+use std::fmt::Display;
+
+use crate::scanner::token::{LitVal, Token};
 
 pub enum Expr {
     Grouping(Box<Expr>),
@@ -32,4 +34,10 @@ fn parenthesize(val: &str, exprs: &[&Expr]) -> String {
     }
     str.push(')');
     str
+}
+
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.expand())
+    }
 }

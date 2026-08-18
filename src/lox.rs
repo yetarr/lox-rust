@@ -1,10 +1,12 @@
-use std::process::exit;
 use std::{fs::File, io::Read};
 use std::io::{Write, stdin, stdout};
 
 use anyhow::Result;
 
-use crate::lexer::scanner::Scanner;
+use crate::parser::Parser;
+use crate::parser::expr::Expr;
+use crate::scanner::Scanner;
+use crate::scanner::token::{LitVal, Token, TokenT};
 
 pub struct Lox {
     had_err: bool,
@@ -19,7 +21,7 @@ impl Lox {
         let mut file = File::open(file)?;
         let mut code = String::new();
         file.read_to_string(&mut code)?;
-        self.run(code)?;
+        self.run(code);
     
         Ok(())
     }
@@ -39,30 +41,42 @@ impl Lox {
                 }
             }
     
-            self.run(buf.clone().trim_end().to_string())?;
+            self.run(buf.clone().trim_end().to_string());
             self.had_err = false;
         }
     
         Ok(())
     }
     
-    fn run(&mut self, code: String) -> Result<()> {
+    fn run(&mut self, code: String) {
+        let tkns = {
+            let mut scr = Scanner::new(code, self);
+            scr.scan_tokens()
+        };
+        let expr = {
+             let mut prs = Parser::new(tkns, self);
+             prs.parse()
+        };
+
         if self.had_err { 
-            exit(65); 
+            return;
         }
         
-        let mut scr = Scanner::new(code);
-        let tkns = scr.scan_tokens(self);
-    
-        for tkn in tkns {
-            println!("{:?}", tkn);
+        match expr {
+            Some(expr) => println!("{}", expr),
+            None       => println!("{}", Expr::Literal(LitVal::Nil)) 
         }
-
-        Ok(())
     }
 
-    pub fn error(&mut self, ln: usize, msg: &str) {
+    pub fn error_simple(&mut self, ln: usize, msg: &str) {
         self.report(ln, "", msg);
+    }
+
+    pub fn error_parse(&mut self, tkn: &Token, msg: &str) {
+        match tkn.token_t {
+            TokenT::EOF => self.report(tkn.ln, " at end", msg),
+            _           => self.report(tkn.ln, &format!(" at '{}'", tkn.lex), msg),
+        }
     }
 
     fn report(&mut self, ln: usize, loc: &str, msg: &str) {
