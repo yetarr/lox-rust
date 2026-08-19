@@ -14,15 +14,21 @@ pub enum Expr {
         op: Token,
         right: Box<Expr>
     },
+    Ternary {
+        cond: Box<Expr>,
+        first: Box<Expr>,
+        second: Box<Expr>
+    }
 }
 
 impl Expr {
     pub fn expand(&self) -> String {
         match self {
-            Self::Literal(v)                 => v.to_string(),
-            Self::Grouping(expr)             => parenthesize("group", &[expr]),
-            Self::Binary { left, op, right } => parenthesize(&op.lex, &[left, right]),
-            Self::Unary { op, right }        => parenthesize(&op.lex, &[right]),
+            Self::Literal(v)                      => v.to_string(),
+            Self::Grouping(expr)                  => parenthesize("group", &[expr]),
+            Self::Binary { left, op, right }      => parenthesize(&op.lex, &[left, right]),
+            Self::Unary { op, right }             => parenthesize(&op.lex, &[right]),
+            Self::Ternary { cond, first, second } => parenthesize("?:", &[cond, first, second]),
         }
     }
 }

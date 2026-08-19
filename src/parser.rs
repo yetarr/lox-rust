@@ -1,7 +1,7 @@
 pub mod expr;
 pub mod rules;
 
-use crate::{lox::Lox, parser::expr::Expr, lexer::token::{Token, TokenT}};
+use crate::{lox::Lox, parser::expr::Expr, lexer::token::{Token, TokenT}}; 
 
 pub struct Parser<'a> {
     tkns: Vec<Token>,

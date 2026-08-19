@@ -19,11 +19,28 @@ macro_rules! binary_rule {
     };
 }
 
-#[allow(dead_code)]
 impl<'a> Parser<'a> {
     pub(in crate::parser) fn expression(&mut self) -> Option<Expr> {
-        self.equality()
+        self.ternary()
     }
+
+    fn ternary(&mut self) -> Option<Expr> {
+        let cond = self.comma();
+
+        if self.tkn_match(&[TokenT::Query]) {
+            let first = self.expression()?;
+            self.consume(TokenT::Colon, "Expect ':' after first expression.")?;
+            let second = self.expression()?;            
+            return Some(Expr::Ternary { 
+                cond: Box::new(cond?), 
+                first: Box::new(first), 
+                second: Box::new(second)
+            });
+        }
+        cond
+    }
+
+    binary_rule!(comma, equality, [TokenT::Comma]);
 
     binary_rule!(equality, comparison, [TokenT::BangEqual, TokenT::EqualEqual]);
     
@@ -57,7 +74,7 @@ impl<'a> Parser<'a> {
 
         if self.tkn_match(&[TokenT::LeftParen]) {
             let expr = self.expression();
-            self.consume(TokenT::RightParen, "Expect ')' after expression,");
+            self.consume(TokenT::RightParen, "Expect ')' after expression.");
             return Some(Expr::Grouping(Box::new(expr?)))
         }
         

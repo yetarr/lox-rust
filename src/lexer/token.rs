@@ -12,6 +12,7 @@ pub enum TokenT {
     // Single-character tokens
     LeftParen, RightParen, LeftBrace, RightBrace,
     Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
+    Colon, Query,
 
     // One or two character tokens
     Bang, BangEqual,

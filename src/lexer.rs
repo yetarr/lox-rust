@@ -80,7 +80,9 @@ impl<'a> Scanner<'a> {
             '-'  => self.add_tkn(TokenT::Minus),
             '+'  => self.add_tkn(TokenT::Plus),
             ';'  => self.add_tkn(TokenT::Semicolon),
+            ':'  => self.add_tkn(TokenT::Colon),
             '*'  => self.add_tkn(TokenT::Star),
+            '?'  => self.add_tkn(TokenT::Query),
             '!'  => {
                 let token_t = if self.match_nxt('=') { TokenT::BangEqual } else { TokenT::Bang };
                 self.add_tkn(token_t);

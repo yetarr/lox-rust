@@ -53,6 +53,7 @@ impl Lox {
             let mut scr = Scanner::new(code, self);
             scr.scan_tokens()
         };
+
         let expr = {
              let mut prs = Parser::new(tkns, self);
              prs.parse()
