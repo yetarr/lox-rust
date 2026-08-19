@@ -1,5 +1,5 @@
 use super::Parser;
-use crate::{scanner::token::{Keyword, TokenT}, parser::expr::Expr};
+use crate::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
 
 macro_rules! binary_rule {
     ($name:ident, $next:ident, [$($tkn:expr), +]) => {

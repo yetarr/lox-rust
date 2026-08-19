@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::scanner::token::{LitVal, Token};
+use crate::lexer::token::{LitVal, Token};
 
 pub enum Expr {
     Grouping(Box<Expr>),

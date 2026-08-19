@@ -55,10 +55,10 @@ impl<'a> Scanner<'a> {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.cur;
-            self.scan_token();
+            self.scan_tkn();
         }
 
-        self.add_token(TokenT::EOF);
+        self.add_tkn(TokenT::EOF);
         std::mem::take(&mut self.tkns)
     }
 
@@ -66,58 +66,58 @@ impl<'a> Scanner<'a> {
         self.cur >= self.src.len()
     }
 
-    fn scan_token(&mut self) {
-        let c = self.advance();
+    fn scan_tkn(&mut self) {
+        let c = self.next();
         match c {
             ' ' | '\r' | '\t' => {}
             '\n' => self.ln += 1,
-            '('  => self.add_token(TokenT::LeftParen),
-            ')'  => self.add_token(TokenT::RightParen),
-            '{'  => self.add_token(TokenT::LeftBrace),
-            '}'  => self.add_token(TokenT::RightBrace),
-            ','  => self.add_token(TokenT::Comma),
-            '.'  => self.add_token(TokenT::Dot),
-            '-'  => self.add_token(TokenT::Minus),
-            '+'  => self.add_token(TokenT::Plus),
-            ';'  => self.add_token(TokenT::Semicolon),
-            '*'  => self.add_token(TokenT::Star),
+            '('  => self.add_tkn(TokenT::LeftParen),
+            ')'  => self.add_tkn(TokenT::RightParen),
+            '{'  => self.add_tkn(TokenT::LeftBrace),
+            '}'  => self.add_tkn(TokenT::RightBrace),
+            ','  => self.add_tkn(TokenT::Comma),
+            '.'  => self.add_tkn(TokenT::Dot),
+            '-'  => self.add_tkn(TokenT::Minus),
+            '+'  => self.add_tkn(TokenT::Plus),
+            ';'  => self.add_tkn(TokenT::Semicolon),
+            '*'  => self.add_tkn(TokenT::Star),
             '!'  => {
-                let token_t = if self.match_advance('=') { TokenT::BangEqual } else { TokenT::Bang };
-                self.add_token(token_t);
+                let token_t = if self.match_nxt('=') { TokenT::BangEqual } else { TokenT::Bang };
+                self.add_tkn(token_t);
             }
             '='  => {
-                let token_t = if self.match_advance('=') { TokenT::EqualEqual } else { TokenT::Equal };
-                self.add_token(token_t);
+                let token_t = if self.match_nxt('=') { TokenT::EqualEqual } else { TokenT::Equal };
+                self.add_tkn(token_t);
             }
             '<'  => {
-                let token_t = if self.match_advance('=') { TokenT::LessEqual } else { TokenT::Less };
-                self.add_token(token_t);
+                let token_t = if self.match_nxt('=') { TokenT::LessEqual } else { TokenT::Less };
+                self.add_tkn(token_t);
             }
             '>'  => {
-                let token_t = if self.match_advance('=') { TokenT::GreaterEqual } else { TokenT::Greater };
-                self.add_token(token_t);
+                let token_t = if self.match_nxt('=') { TokenT::GreaterEqual } else { TokenT::Greater };
+                self.add_tkn(token_t);
             }
             '/'  => {
-                if self.match_advance('/') {
+                if self.match_nxt('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
-                        self.advance();
+                        self.next();
                     }
-                } else if self.match_advance('*') {
-                    while !(self.peek() == '*' && self.peek_next() == '/') && !self.is_at_end() {
+                } else if self.match_nxt('*') {
+                    while !(self.peek() == '*' && self.peek_nxt() == '/') && !self.is_at_end() {
                         if self.peek() == '\n' { self.ln += 1; }
-                        self.advance();
+                        self.next();
                     }
 
-                    if !self.is_at_end() { self.advance(); }
+                    if !self.is_at_end() { self.next(); }
                     else { 
                         self.lox.error_simple(self.ln, "Unterminated block comment");
                         return;
                     }
                     
-                    if !self.is_at_end() { self.advance(); }
+                    if !self.is_at_end() { self.next(); }
                     else { self.lox.error_simple(self.ln, "Unterminated block comment"); }
                 } else {
-                    self.add_token(TokenT::Slash);
+                    self.add_tkn(TokenT::Slash);
                 }
             }
             '"'  => self.string(),
@@ -138,17 +138,17 @@ impl<'a> Scanner<'a> {
         self.src.as_bytes()[self.cur] as char
     }
 
-    fn peek_next(&self) -> char {
+    fn peek_nxt(&self) -> char {
         if self.cur + 1 >= self.src.len() { return '\0'; }
         self.src.as_bytes()[self.cur + 1] as char
     }
 
-    fn advance(&mut self) -> char {
+    fn next(&mut self) -> char {
         self.cur += 1;
         self.cur_char()
     }
 
-    fn match_advance(&mut self, exp: char) -> bool {
+    fn match_nxt(&mut self, exp: char) -> bool {
         if self.is_at_end() { return false; }
         if self.peek() != exp { return false; }
 
@@ -156,11 +156,11 @@ impl<'a> Scanner<'a> {
         true
     }
 
-    fn add_token(&mut self, token_t: TokenT) {
-        self.add_token_lit(token_t, LitVal::Nil);
+    fn add_tkn(&mut self, token_t: TokenT) {
+        self.add_tkn_lit(token_t, LitVal::Nil);
     }
 
-    fn add_token_lit(&mut self, token_t: TokenT, lit: LitVal) {
+    fn add_tkn_lit(&mut self, token_t: TokenT, lit: LitVal) {
         let mut txt = "";
         if token_t != TokenT::EOF {
             txt = &self.src[self.start..self.cur];
@@ -175,7 +175,7 @@ impl<'a> Scanner<'a> {
     fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' { self.ln += 1 }
-            self.advance();
+            self.next();
         }
 
         if self.is_at_end() {
@@ -183,35 +183,35 @@ impl<'a> Scanner<'a> {
             return;
         }
 
-        self.advance();
+        self.next();
 
         let lit = &self.src[self.start + 1..self.cur - 1];
-        self.add_token_lit(TokenT::Literal, LitVal::String(lit.to_string()));
+        self.add_tkn_lit(TokenT::Literal, LitVal::String(lit.to_string()));
     }
 
     fn number(&mut self) {
-        while utils::is_number(self.peek()) { self.advance(); }
+        while utils::is_number(self.peek()) { self.next(); }
 
-        if self.peek() == '.' && self.peek_next().is_ascii_digit() {
-            self.advance();
-            while self.peek().is_ascii_digit() { self.advance(); }
+        if self.peek() == '.' && self.peek_nxt().is_ascii_digit() {
+            self.next();
+            while self.peek().is_ascii_digit() { self.next(); }
         }
 
         let lit = self.src[self.start..self.cur].parse::<f64>().unwrap();
-        self.add_token_lit(TokenT::Literal, LitVal::Number(lit));
+        self.add_tkn_lit(TokenT::Literal, LitVal::Number(lit));
     }
 
     fn identifier(&mut self) {
-        while utils::is_alpha_numeric(self.peek()) { self.advance(); }
+        while utils::is_alpha_numeric(self.peek()) { self.next(); }
 
         let id = &self.src[self.start..self.cur];
         match lookup_keyword(id) {
             Some(tt) => match tt {
-                TokenT::Keyword(Keyword::True)  => self.add_token_lit(tt, LitVal::Boolean(true)),
-                TokenT::Keyword(Keyword::False) => self.add_token_lit(tt, LitVal::Boolean(false)),
-                _ => self.add_token(tt)
+                TokenT::Keyword(Keyword::True)  => self.add_tkn_lit(tt, LitVal::Boolean(true)),
+                TokenT::Keyword(Keyword::False) => self.add_tkn_lit(tt, LitVal::Boolean(false)),
+                _ => self.add_tkn(tt)
             },
-            None => self.add_token(TokenT::Identifier),
+            None => self.add_tkn(TokenT::Identifier),
         }
     }
 }

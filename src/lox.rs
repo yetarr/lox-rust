@@ -5,8 +5,8 @@ use anyhow::Result;
 
 use crate::parser::Parser;
 use crate::parser::expr::Expr;
-use crate::scanner::Scanner;
-use crate::scanner::token::{LitVal, Token, TokenT};
+use crate::lexer::Scanner;
+use crate::lexer::token::{LitVal, Token, TokenT};
 
 pub struct Lox {
     had_err: bool,
