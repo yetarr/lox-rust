@@ -1,4 +1,4 @@
-use crate::frontend::{parser::expr::Expr, lexer::token::{Token, TokenT, LitVal}};
+use crate::{backend::utils::{binary_op, validator}, frontend::{lexer::token::{LitVal, Token, TokenT}, parser::expr::Expr}};
 use super::super::{interpreter::{Interpreter, error::RuntimeError}};
 
 #[allow(dead_code)]
@@ -35,7 +35,7 @@ impl<'a> Interpreter<'a> {
     fn unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
         let right = self.evaluate(right);
         let val = match op.token_t {
-            TokenT::Minus => LitVal::Number(-self.check_num(op, right.as_number())?),
+            TokenT::Minus => LitVal::Number(-validator::check_num(op, right.as_number())?),
             TokenT::Bang  => LitVal::Boolean(self.is_truthy(&right)),
             _ => LitVal::Nil
         };
@@ -46,92 +46,18 @@ impl<'a> Interpreter<'a> {
         let left = self.evaluate(left);
         let right = self.evaluate(right);
 
-       let res = match op.token_t {
-            TokenT::Minus => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Number(x - y)
-            }
-            
-            TokenT::Plus  => match left {
-                LitVal::Number(_) => {
-                    let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                    LitVal::Number(x + y)
-                }
-
-                LitVal::String(_) => {
-                    let (mut x, y) = self.check_strs(op, left.as_string(), right.as_string())?;
-                    x.push_str(&y);
-                    LitVal::String(x)
-                }
-
-                _ => return Err(
-                    RuntimeError::new(op, "Operands must be two numbers or two strings")
-                ),
-            },
-
-            TokenT::Slash => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Number(x / y)
-            }
-
-            TokenT::Star  => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Number(x * y)
-            }
-
-            TokenT::Greater => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Boolean(x > y)
-            }
-
-            TokenT::GreaterEqual => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Boolean(x >= y)
-            }
-
-            TokenT::Less => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Boolean(x < y)
-            }
-
-            TokenT::LessEqual => {
-                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
-                LitVal::Boolean(x <= y)
-            }
-
-            TokenT::BangEqual => LitVal::Boolean(!self.is_equal(&left, &right)),
-
-            TokenT::EqualEqual => LitVal::Boolean(self.is_equal(&left, &right)),
-
-            _ => LitVal::Nil
-        };
-        Ok(res)
-    }
-
-    fn check_num(&self, op: &Token, x: Option<f64>) 
-            -> Result<f64, RuntimeError>
-    {
-        if let Some(x) = x {
-            return Ok(x)
+        match op.token_t {
+            TokenT::Minus        => binary_op::minus(op, &left, &right),
+            TokenT::Plus         => binary_op::plus(op, &left, &right),
+            TokenT::Slash        => binary_op::div(op, &left, &right),
+            TokenT::Star         => binary_op::mult(op, &left, &right),
+            TokenT::Greater      => binary_op::greater(op, &left, &right),
+            TokenT::GreaterEqual => binary_op::greater_eq(op, &left, &right),
+            TokenT::Less         => binary_op::less(op, &left, &right),
+            TokenT::LessEqual    => binary_op::less_eq(op, &left, &right),
+            TokenT::BangEqual    => binary_op::not_eq(&left, &right),
+            TokenT::EqualEqual   => binary_op::eq(&left, &right),
+            _                    => Ok(LitVal::Nil)
         }
-        Err(RuntimeError::new(op, "Operands must be numbers."))
-    }
-
-    fn check_nums(&self, op: &Token, x: Option<f64>, y: Option<f64>) 
-            -> Result<(f64, f64), RuntimeError>
-    {
-        if let (Some(x), Some(y)) = (x, y) {
-            return Ok((x, y))
-        }
-        Err(RuntimeError::new(op, "Operands must be numbers."))
-    }
-
-    fn check_strs(&self, op: &Token, x: Option<String>, y: Option<String>) 
-            -> Result<(String, String), RuntimeError>
-    {
-        if let (Some(x), Some(y)) = (x, y) {
-            return Ok((x, y))
-        }
-        Err(RuntimeError::new(op, "Operands must be strings."))
     }
 }
