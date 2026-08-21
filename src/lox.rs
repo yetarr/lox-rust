@@ -1,20 +1,26 @@
+use std::process::exit;
 use std::{fs::File, io::Read};
 use std::io::{Write, stdin, stdout};
 
 use anyhow::Result;
 
-use crate::parser::Parser;
-use crate::parser::expr::Expr;
-use crate::lexer::Scanner;
-use crate::lexer::token::{LitVal, Token, TokenT};
+use crate::backend::interpreter::Interpreter;
+use crate::backend::interpreter::error::RuntimeError;
+use crate::frontend::parser::Parser;
+use crate::frontend::lexer::Scanner;
+use crate::frontend::lexer::token::{Token, TokenT};
+
+const DATA_FORMAT_ERROR: i32 = 65;
+const INTERNAL_SOFTWARE_ERROR: i32 = 70;
 
 pub struct Lox {
-    had_err: bool,
+    had_parse_err: bool,
+    had_runtime_err: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Lox { had_err: false }
+        Lox { had_parse_err: false, had_runtime_err: false }
     }
     
     pub fn run_file(&mut self, file: String) -> Result<()> {
@@ -42,7 +48,7 @@ impl Lox {
             }
     
             self.run(buf.clone().trim_end().to_string());
-            self.had_err = false;
+            self.had_parse_err = false;
         }
     
         Ok(())
@@ -54,18 +60,22 @@ impl Lox {
             scr.scan_tokens()
         };
 
-        let expr = {
-             let mut prs = Parser::new(tkns, self);
-             prs.parse()
+        let expr_res = {
+            let mut prs = Parser::new(tkns, self);
+            prs.parse()
         };
 
-        if self.had_err { 
-            return;
+        if self.had_parse_err { 
+            exit(DATA_FORMAT_ERROR)
         }
-        
-        match expr {
-            Some(expr) => println!("{}", expr),
-            None       => println!("{}", Expr::Literal(LitVal::Nil)) 
+
+        if let Some(expr) = expr_res {
+            let mut intr = Interpreter::new(self, expr);
+            intr.interpret();
+        }
+
+        if self.had_runtime_err {
+            exit(INTERNAL_SOFTWARE_ERROR)
         }
     }
 
@@ -80,8 +90,13 @@ impl Lox {
         }
     }
 
+    pub fn error_runtime(&mut self, err: RuntimeError) {
+        eprintln!("{}\n[line {}]", err.msg, err.tkn.ln);
+        self.had_runtime_err = true;
+    }
+
     fn report(&mut self, ln: usize, loc: &str, msg: &str) {
         eprintln!("[line {}] Error{}: {}", ln, loc, msg);
-        self.had_err = true;
+        self.had_parse_err = true;
     }
 }

@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
-use crate::lexer::token::{LitVal, Token};
+use super::super::lexer::token::{LitVal, Token};
 
+#[derive(Clone)]
 pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LitVal),

@@ -1,28 +1,39 @@
-use crate::{interpreter::{Interpreter, error::RuntimeError}, lexer::token::{LitVal, Token, TokenT}, parser::expr::Expr};
+use crate::frontend::{parser::expr::Expr, lexer::token::{Token, TokenT, LitVal}};
+use super::super::{interpreter::{Interpreter, error::RuntimeError}};
 
 #[allow(dead_code)]
-impl Interpreter {
-    fn interpret(&self, expr: &Expr) -> Result<LitVal, RuntimeError> {
-        let val = match expr {
-            Expr::Literal(lit)               => self.literal(lit),
-            Expr::Grouping(inner)            => self.grouping(inner)?,
-            Expr::Unary { op, right }        => self.unary(op, right)?,
-            Expr::Binary { left, op, right } => self.binary(left, op, right)?,
-            _ => LitVal::Nil
+impl<'a> Interpreter<'a> {
+    pub(in super::super::interpreter) fn evaluate(&mut self, expr: &Expr) -> LitVal {
+        let res = match expr {
+            Expr::Literal(lit)               => Ok(self.literal(lit)),
+            Expr::Grouping(inner)            => Ok(self.grouping(inner)),
+            Expr::Unary { op, right }        => self.unary(op, right),
+            Expr::Binary { left, op, right } => self.binary(left, op, right),
+            _                                => Ok(LitVal::Nil)
         };
-        Ok(val)
+        
+        match res {
+            Ok(val) => {
+                println!("{}", val.to_string());
+                val
+            },
+            Err(e)  => {
+                self.lox.error_runtime(e);
+                LitVal::Nil
+            },
+        }
     }
 
     fn literal(&self, lit: &LitVal) -> LitVal {
         lit.clone()
     }
 
-    fn grouping(&self, inner: &Expr) -> Result<LitVal, RuntimeError> {
-        self.interpret(inner)
+    fn grouping(&mut self, inner: &Expr) -> LitVal {
+        self.evaluate(inner)
     }
 
-    fn unary(&self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
-        let right = self.interpret(right)?;
+    fn unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+        let right = self.evaluate(right);
         let val = match op.token_t {
             TokenT::Minus => LitVal::Number(-self.check_num(op, right.as_number())?),
             TokenT::Bang  => LitVal::Boolean(self.is_truthy(&right)),
@@ -31,9 +42,9 @@ impl Interpreter {
         Ok(val)
     }
 
-    fn binary(&self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
-        let left = self.interpret(left)?;
-        let right = self.interpret(right)?;
+    fn binary(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+        let left = self.evaluate(left);
+        let right = self.evaluate(right);
 
        let res = match op.token_t {
             TokenT::Minus => {

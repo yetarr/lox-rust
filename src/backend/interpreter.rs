@@ -1,15 +1,25 @@
 pub mod evaluator;
 pub mod error;
 
-use crate::{lexer::token::LitVal, parser::expr::Expr};
+use crate::lox::Lox;
+use crate::frontend::{lexer::token::LitVal, parser::expr::Expr};
 
 #[allow(dead_code)]
-pub struct Interpreter {
-    exprs: Vec<Expr>,
+pub struct Interpreter<'a> {
+    lox: &'a mut Lox,
+    expr: Expr,
 }
 
 #[allow(dead_code)]
-impl Interpreter {
+impl<'a> Interpreter<'a> {
+    pub fn new(lox: &'a mut Lox, expr: Expr) -> Self {
+        Interpreter { lox, expr }
+    }
+
+    pub fn interpret(&mut self) -> LitVal {
+        self.evaluate(&self.expr.clone())
+    }
+
     fn is_truthy(&self, val: &LitVal) -> bool {
         match val {
             LitVal::Boolean(b) => *b,

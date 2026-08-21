@@ -1,5 +1,5 @@
 use super::Parser;
-use crate::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
+use super::super::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
 
 macro_rules! binary_rule {
     ($name:ident, $next:ident, [$($tkn:expr), +]) => {
@@ -26,7 +26,7 @@ macro_rules! binary_rule {
 }
 
 impl<'a> Parser<'a> {
-    pub(in crate::parser) fn expression(&mut self) -> Option<Expr> {
+    pub(in super::super::parser) fn expression(&mut self) -> Option<Expr> {
         self.ternary()
     }
 
