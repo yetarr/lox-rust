@@ -5,11 +5,11 @@ pub fn plus(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> 
     if let Some(s) = x.as_string() {
         return Ok(string(s.clone(), y.to_string()));
     }
-    
+
     if let Some(s) = y.as_string() {
         return Ok(string(x.to_string(), s.clone()));
     }
-    
+
     let (a, b) = check_nums(op, x.as_number(), y.as_number())?;
     Ok(LitVal::Number(a + b))
 }
@@ -26,6 +26,9 @@ pub fn mult(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> 
 
 pub fn div(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> {
     let (x, y) = check_nums(op, x.as_number(), y.as_number())?;
+    if y == 0.0 {
+        return Err(RuntimeError::new(op, "Cannot perform division by 0."))
+    }
     Ok(LitVal::Number(x / y))
 }
 
