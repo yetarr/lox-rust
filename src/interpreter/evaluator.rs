@@ -35,7 +35,7 @@ impl Interpreter {
         let left = self.interpret(left)?;
         let right = self.interpret(right)?;
 
-       let res =  match op.token_t {
+       let res = match op.token_t {
             TokenT::Minus => {
                 let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
                 LitVal::Number(x - y)
@@ -53,7 +53,9 @@ impl Interpreter {
                     LitVal::String(x)
                 }
 
-                _ => unreachable!()
+                _ => return Err(
+                    RuntimeError::new(op, "Operands must be two numbers or two strings")
+                ),
             },
 
             TokenT::Slash => {
@@ -66,21 +68,25 @@ impl Interpreter {
                 LitVal::Number(x * y)
             }
 
-            TokenT::Greater => LitVal::Boolean(
-                left.as_bool().unwrap() > right.as_bool().unwrap()
-            ),
+            TokenT::Greater => {
+                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
+                LitVal::Boolean(x > y)
+            }
 
-            TokenT::GreaterEqual => LitVal::Boolean(
-                left.as_bool().unwrap() >= right.as_bool().unwrap()
-            ),
+            TokenT::GreaterEqual => {
+                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
+                LitVal::Boolean(x >= y)
+            }
 
-            TokenT::Less => LitVal::Boolean(
-                left.as_bool().unwrap() < right.as_bool().unwrap()
-            ),
+            TokenT::Less => {
+                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
+                LitVal::Boolean(x < y)
+            }
 
-            TokenT::LessEqual => LitVal::Boolean(
-                left.as_bool().unwrap() <= right.as_bool().unwrap()
-            ),
+            TokenT::LessEqual => {
+                let (x, y) = self.check_nums(op, left.as_number(), right.as_number())?;
+                LitVal::Boolean(x <= y)
+            }
 
             TokenT::BangEqual => LitVal::Boolean(!self.is_equal(&left, &right)),
 
@@ -113,7 +119,7 @@ impl Interpreter {
             -> Result<(String, String), RuntimeError>
     {
         if let (Some(x), Some(y)) = (x, y) {
-        return Ok((x, y))
+            return Ok((x, y))
         }
         Err(RuntimeError::new(op, "Operands must be strings."))
     }
