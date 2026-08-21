@@ -43,10 +43,31 @@ pub enum LitVal {
 impl LitVal {
     pub fn to_string(&self) -> String {
         match self {
-            Self::String(s)  => s.clone(),
-            Self::Number(n)  => n.to_string(),
-            Self::Boolean(b) => b.to_string(),
-            Self::Nil        => String::from("nil")
+            LitVal::String(s)  => s.clone(),
+            LitVal::Number(n)  => n.to_string(),
+            LitVal::Boolean(b) => b.to_string(),
+            LitVal::Nil        => String::from("nil"),
+        }
+    }
+    
+    pub fn as_number(&self) -> Option<f64> {
+        match self {
+            LitVal::Number(n) => Some(*n),
+            _ => None,
+        }
+    }
+    
+    pub fn as_string(&self) -> Option<String> {
+        match self {
+            LitVal::String(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+    
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            LitVal::Boolean(b) => Some(*b),
+            _ => None,
         }
     }
 }

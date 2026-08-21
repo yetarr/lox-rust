@@ -4,6 +4,12 @@ use crate::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
 macro_rules! binary_rule {
     ($name:ident, $next:ident, [$($tkn:expr), +]) => {
         fn $name(&mut self) -> Option<Expr> {
+            if self.tkn_match(&[$($tkn),+]){
+                self.error(&self.previous().clone(), "Expect expression before operator.");
+                let _ = self.$next();
+                return None;
+            }
+            
             let mut expr = self.$next();
             while self.tkn_match(&[$($tkn),+]) {
                 let op = self.previous().clone();
