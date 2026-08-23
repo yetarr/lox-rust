@@ -1,3 +1,5 @@
+use crate::frontend::parser::stmt::Stmt;
+
 use super::Parser;
 use super::super::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
 
@@ -28,6 +30,25 @@ macro_rules! binary_rule {
 impl<'a> Parser<'a> {
     pub(in super::super::parser) fn expression(&mut self) -> Option<Expr> {
         self.ternary()
+    }
+
+    pub(in super::super::parser) fn statement(&mut self) -> Stmt {
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Print)]) {
+            return self.print_stmt();
+        }
+        self.expr_stmt()
+    }
+
+    fn print_stmt(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenT::Semicolon, "Expect ';' after value.");
+        Stmt::Print(value.unwrap())
+    }
+
+    fn expr_stmt(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(TokenT::Semicolon, "Expect ';' after value.");
+        Stmt::Expression(expr.unwrap())
     }
 
     fn ternary(&mut self) -> Option<Expr> {

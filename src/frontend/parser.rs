@@ -1,8 +1,9 @@
 pub mod expr;
+pub mod stmt;
 pub mod rules;
 
-use crate::lox::Lox;
-use super::{parser::expr::Expr, lexer::token::{Token, TokenT}}; 
+use crate::{frontend::parser::stmt::Stmt, lox::Lox};
+use super::{lexer::token::{Token, TokenT}}; 
 
 pub struct Parser<'a> {
     tkns: Vec<Token>,
@@ -19,8 +20,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut stmts = Vec::new();
+        while !self.eof() {
+            stmts.push(self.statement());
+        }
+        stmts
     }
 
     fn tkn_match(&mut self, tkns_t: &[TokenT]) -> bool {

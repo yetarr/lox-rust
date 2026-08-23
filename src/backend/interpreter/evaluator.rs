@@ -3,24 +3,13 @@ use super::super::{interpreter::{Interpreter, error::RuntimeError}};
 
 #[allow(dead_code)]
 impl<'a> Interpreter<'a> {
-    pub(in super::super::interpreter) fn evaluate(&mut self, expr: &Expr) -> LitVal {
-        let res = match expr {
+    pub(in super::super::interpreter) fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
+        match expr {
             Expr::Literal(lit)               => Ok(self.literal(lit)),
-            Expr::Grouping(inner)            => Ok(self.grouping(inner)),
+            Expr::Grouping(inner)            => self.grouping(inner),
             Expr::Unary { op, right }        => self.unary(op, right),
             Expr::Binary { left, op, right } => self.binary(left, op, right),
             _                                => Ok(LitVal::Nil)
-        };
-        
-        match res {
-            Ok(val) => {
-                println!("{}", val.to_string());
-                val
-            },
-            Err(e)  => {
-                self.lox.error_runtime(e);
-                LitVal::Nil
-            },
         }
     }
 
@@ -28,12 +17,12 @@ impl<'a> Interpreter<'a> {
         lit.clone()
     }
 
-    fn grouping(&mut self, inner: &Expr) -> LitVal {
-        self.evaluate(inner)
+    fn grouping(&mut self, inner: &Expr) -> Result<LitVal, RuntimeError> {
+        self.eval(inner)
     }
 
     fn unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
-        let right = self.evaluate(right);
+        let right = self.eval(right)?;
         let val = match op.token_t {
             TokenT::Minus => LitVal::Number(-validator::check_num(op, right.as_number())?),
             TokenT::Bang  => LitVal::Boolean(self.is_truthy(&right)),
@@ -43,8 +32,8 @@ impl<'a> Interpreter<'a> {
     }
 
     fn binary(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
-        let left = self.evaluate(left);
-        let right = self.evaluate(right);
+        let left = self.eval(left)?;
+        let right = self.eval(right)?;
 
         match op.token_t {
             TokenT::Minus        => binary_op::minus(op, &left, &right),

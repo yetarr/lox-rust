@@ -60,7 +60,7 @@ impl Lox {
             scr.scan_tokens()
         };
 
-        let expr_res = {
+        let stmts = {
             let mut prs = Parser::new(tkns, self);
             prs.parse()
         };
@@ -69,10 +69,8 @@ impl Lox {
             exit(DATA_FORMAT_ERROR)
         }
 
-        if let Some(expr) = expr_res {
-            let mut intr = Interpreter::new(self, expr);
-            intr.interpret();
-        }
+        let mut intr = Interpreter::new(self, stmts);
+        intr.interpret();
 
         if self.had_runtime_err {
             exit(INTERNAL_SOFTWARE_ERROR)
@@ -90,7 +88,7 @@ impl Lox {
         }
     }
 
-    pub fn error_runtime(&mut self, err: RuntimeError) {
+    pub fn error_runtime(&mut self, err: &RuntimeError) {
         eprintln!("{}\n[line {}]", err.msg, err.tkn.ln);
         self.had_runtime_err = true;
     }
