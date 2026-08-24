@@ -5,23 +5,38 @@ use super::super::{interpreter::{Interpreter, error::RuntimeError}};
 impl<'a> Interpreter<'a> {
     pub(in super::super::interpreter) fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
-            Expr::Literal(lit)               => Ok(self.literal(lit)),
-            Expr::Grouping(inner)            => self.grouping(inner),
-            Expr::Unary { op, right }        => self.unary(op, right),
-            Expr::Binary { left, op, right } => self.binary(left, op, right),
+            Expr::Literal(lit)               => Ok(self.eval_lit(lit)),
+            Expr::Grouping(inner)            => self.eval_group(inner),
+            Expr::Unary { op, right }        => self.eval_unary(op, right),
+            Expr::Binary { left, op, right } => self.eval_bin(left, op, right),
+            Expr::Variable(name)             => self.eval_var(name),
+            Expr::Assign { name, val }       => self.eval_assign(name, val),
             _                                => Ok(LitVal::Nil)
         }
     }
 
-    fn literal(&self, lit: &LitVal) -> LitVal {
+    fn eval_lit(&self, lit: &LitVal) -> LitVal {
         lit.clone()
     }
 
-    fn grouping(&mut self, inner: &Expr) -> Result<LitVal, RuntimeError> {
+    fn eval_var(&mut self, name: &Token) -> Result<LitVal, RuntimeError> {
+        Ok(self.env.get(name)?.clone())
+    }
+
+    fn eval_assign(&mut self, name: &Token, val: &Expr) -> Result<LitVal, RuntimeError> {
+        let val = self.eval(val)?;
+        if self.env.contains(&name.lex) {
+            self.env.define(&name.lex, val.clone());
+            return Ok(val);
+        }
+        Err(RuntimeError::new(name, &format!("Undefined variable '{}'.", name.lex)))
+    }
+
+    fn eval_group(&mut self, inner: &Expr) -> Result<LitVal, RuntimeError> {
         self.eval(inner)
     }
 
-    fn unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+    fn eval_unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
         let right = self.eval(right)?;
         let val = match op.token_t {
             TokenT::Minus => LitVal::Number(-validator::check_num(op, right.as_number())?),
@@ -31,7 +46,7 @@ impl<'a> Interpreter<'a> {
         Ok(val)
     }
 
-    fn binary(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+    fn eval_bin(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
         let left = self.eval(left)?;
         let right = self.eval(right)?;
 

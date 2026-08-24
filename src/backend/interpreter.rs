@@ -1,6 +1,8 @@
 pub mod evaluator;
 pub mod error;
+pub mod environment;
 
+use crate::backend::interpreter::environment::Environment;
 use crate::backend::interpreter::error::RuntimeError;
 use crate::frontend::parser::stmt::Stmt;
 use crate::lox::Lox;
@@ -10,12 +12,13 @@ use crate::frontend::{lexer::token::LitVal};
 pub struct Interpreter<'a> {
     stmts: Vec<Stmt>,
     lox: &'a mut Lox,
+    env: Environment,
 }
 
 #[allow(dead_code)]
 impl<'a> Interpreter<'a> {
     pub fn new(lox: &'a mut Lox, stmts: Vec<Stmt>) -> Self {
-        Interpreter { lox, stmts }
+        Interpreter { lox, stmts, env: Environment::new() }
     }
 
     pub fn interpret(&mut self) {
@@ -30,11 +33,18 @@ impl<'a> Interpreter<'a> {
 
     fn exec(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
-            Stmt::Print(val)       => println!("{}", self.eval(&val)?.to_string()),
-            Stmt::Expression(expr) => match self.eval(expr) {
+            Stmt::Print(val)        => println!("{}", self.eval(&val)?.to_string()),
+            Stmt::Expression(expr)  => match self.eval(expr) {
                 Ok(_)  => {},
                 Err(e) => return Err(e),
             },
+            Stmt::Var { name, init } => {
+                let mut val = LitVal::Nil;
+                if let Some(i) = init {
+                    val = self.eval(i)?;
+                }
+                self.env.define(&name.lex, val);
+            }
         }
         Ok(())
     }

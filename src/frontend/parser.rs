@@ -1,8 +1,9 @@
 pub mod expr;
 pub mod stmt;
 pub mod rules;
+pub mod error;
 
-use crate::{frontend::parser::stmt::Stmt, lox::Lox};
+use crate::{frontend::parser::{error::ParseError, stmt::Stmt}, lox::Lox};
 use super::{lexer::token::{Token, TokenT}}; 
 
 pub struct Parser<'a> {
@@ -23,7 +24,9 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts = Vec::new();
         while !self.eof() {
-            stmts.push(self.statement());
+            if let Some(s) = self.declaration() {
+                stmts.push(s);
+            }
         }
         stmts
     }
@@ -60,14 +63,17 @@ impl<'a> Parser<'a> {
         self.peek().token_t == TokenT::EOF
     }
 
-    fn consume(&mut self, token_t: TokenT, msg: &str) -> Option<&Token> {
-        if self.check_cur(&token_t) { return Some(self.advance()); }
+    fn consume(&mut self, token_t: TokenT, msg: &str) -> Result<&Token, ParseError> {
+        if self.check_cur(&token_t) { return Ok(self.advance()); }
         let tkn = self.peek().clone();
-        self.error(&tkn, msg);
-        None
+        Err(ParseError::new(tkn, msg))
     }
 
     fn error(&mut self, tkn: &Token, msg: &str) {
         self.lox.error_parse(tkn, msg);
+    }
+
+    fn sync(&mut self) {
+        
     }
 }

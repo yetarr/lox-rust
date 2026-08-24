@@ -19,7 +19,12 @@ pub enum Expr {
         cond: Box<Expr>,
         first: Box<Expr>,
         second: Box<Expr>
-    }
+    },
+    Assign {
+        name: Token,
+        val: Box<Expr>,
+    },
+    Variable(Token)
 }
 
 impl Expr {
@@ -30,6 +35,8 @@ impl Expr {
             Self::Binary { left, op, right }      => parenthesize(&op.lex, &[left, right]),
             Self::Unary { op, right }             => parenthesize(&op.lex, &[right]),
             Self::Ternary { cond, first, second } => parenthesize("?:", &[cond, first, second]),
+            Self::Assign { name, val }            => parenthesize(&format!("={}", name.lex), &[val]),
+            Self::Variable(id)                    => parenthesize(&format!("var {}", id.lex), &[])
         }
     }
 }

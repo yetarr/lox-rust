@@ -1,3 +1,4 @@
+use crate::frontend::parser::error::ParseError;
 use crate::frontend::parser::stmt::Stmt;
 
 use super::Parser;
@@ -5,18 +6,18 @@ use super::super::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
 
 macro_rules! binary_rule {
     ($name:ident, $next:ident, [$($tkn:expr), +]) => {
-        fn $name(&mut self) -> Option<Expr> {
+        fn $name(&mut self) -> Result<Expr, ParseError> {
             if self.tkn_match(&[$($tkn),+]){
-                self.error(&self.previous().clone(), "Expect expression before operator.");
+                let err = Err(ParseError::new(self.previous().clone(), "Expect expression before operator."));
                 let _ = self.$next();
-                return None;
+                return err;
             }
             
             let mut expr = self.$next();
             while self.tkn_match(&[$($tkn),+]) {
                 let op = self.previous().clone();
                 let right = self.$next()?;
-                expr = Some(Expr::Binary { 
+                expr = Ok(Expr::Binary { 
                     left: Box::new(expr?),
                     op,
                     right: Box::new(right),
@@ -28,37 +29,82 @@ macro_rules! binary_rule {
 }
 
 impl<'a> Parser<'a> {
-    pub(in super::super::parser) fn expression(&mut self) -> Option<Expr> {
-        self.ternary()
+    pub(in super::super::parser) fn declaration(&mut self) -> Option<Stmt> {
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
+            return match self.var_decl() {
+                Ok(var)  => Some(var),
+                Err(err) => {
+                    self.error(&err.tkn, &err.msg);
+                    self.sync();
+                    None
+                }
+            };
+        } 
+        return match self.statement() {
+            Ok(var)  => Some(var),
+            Err(err) => {
+                self.error(&err.tkn, &err.msg);
+                self.sync();
+                None
+            }
+        };
     }
 
-    pub(in super::super::parser) fn statement(&mut self) -> Stmt {
+    fn var_decl(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenT::Identifier, "Expect variable name.")?.clone();
+        let mut init: Option<Expr> = None;
+        if self.tkn_match(&[TokenT::Equal]) {
+            init = Some(self.expression()?);
+        }
+        self.consume(TokenT::Semicolon, "Expect ';' after variable declaration.")?;
+        Ok(Stmt::Var { name, init })
+    }
+
+    pub fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Print)]) {
             return self.print_stmt();
         }
         self.expr_stmt()
     }
 
-    fn print_stmt(&mut self) -> Stmt {
-        let value = self.expression();
-        self.consume(TokenT::Semicolon, "Expect ';' after value.");
-        Stmt::Print(value.unwrap())
+    fn print_stmt(&mut self) -> Result<Stmt, ParseError> {
+        let value = self.expression()?;
+        self.consume(TokenT::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Print(value))
     }
 
-    fn expr_stmt(&mut self) -> Stmt {
-        let expr = self.expression();
-        self.consume(TokenT::Semicolon, "Expect ';' after value.");
-        Stmt::Expression(expr.unwrap())
+    fn expr_stmt(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenT::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Expression(expr))
     }
 
-    fn ternary(&mut self) -> Option<Expr> {
+    fn expression(&mut self) -> Result<Expr, ParseError> {
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.ternary()?;
+        if self.tkn_match(&[TokenT::Equal]) {
+            let equals = self.previous().clone(); 
+            let val = self.assignment()?;
+            match expr {
+                Expr::Variable(var) => 
+                    return Ok(Expr::Assign { name: var, val: Box::new(val) }),
+                _ => self.error(&equals, "Invalid assignment target."),
+            }
+        }
+        Ok(expr)
+    }
+
+    fn ternary(&mut self) -> Result<Expr, ParseError> {
         let cond = self.comma();
 
         if self.tkn_match(&[TokenT::Query]) {
             let first = self.expression()?;
             self.consume(TokenT::Colon, "Expect ':' after first expression.")?;
             let second = self.expression()?;            
-            return Some(Expr::Ternary { 
+            return Ok(Expr::Ternary { 
                 cond: Box::new(cond?), 
                 first: Box::new(first), 
                 second: Box::new(second)
@@ -77,11 +123,11 @@ impl<'a> Parser<'a> {
     
     binary_rule!(factor, unary, [TokenT::Slash, TokenT::Star]);
 
-    fn unary(&mut self) -> Option<Expr> {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.tkn_match(&[TokenT::Bang, TokenT::Minus]) {
             let op = self.previous().clone();
             let right = self.unary()?;
-            return Some(Expr::Unary { 
+            return Ok(Expr::Unary { 
                 op, 
                 right: Box::new(right)
             });
@@ -89,23 +135,26 @@ impl<'a> Parser<'a> {
         self.primary()
     }
 
-    fn primary(&mut self) -> Option<Expr> {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.tkn_match(&[
             TokenT::Keyword(Keyword::Nil),
             TokenT::Keyword(Keyword::True),
             TokenT::Keyword(Keyword::False),
             TokenT::Literal
         ]) {
-            return Some(Expr::Literal(self.previous().lit.clone()))
+            return Ok(Expr::Literal(self.previous().lit.clone()))
+        }
+
+        if self.tkn_match(&[TokenT::Identifier]){
+            return Ok(Expr::Variable(self.previous().clone()));
         }
 
         if self.tkn_match(&[TokenT::LeftParen]) {
             let expr = self.expression();
-            self.consume(TokenT::RightParen, "Expect ')' after expression.");
-            return Some(Expr::Grouping(Box::new(expr?)))
+            self.consume(TokenT::RightParen, "Expect ')' after expression.")?;
+            return Ok(Expr::Grouping(Box::new(expr?)))
         }
-        
-        self.error(&self.peek().clone(), "Expect expression.");
-        None
+
+        Err(ParseError::new(self.peek().clone(), "Expect expression."))
     }
 }
