@@ -1,24 +1,27 @@
 pub mod evaluator;
-pub mod error;
 pub mod environment;
 
 use crate::backend::interpreter::environment::Environment;
-use crate::backend::interpreter::error::RuntimeError;
+use crate::error::RuntimeError;
 use crate::frontend::parser::stmt::Stmt;
 use crate::lox::Lox;
 use crate::frontend::{lexer::token::LitVal};
 
 #[allow(dead_code)]
 pub struct Interpreter<'a> {
-    stmts: Vec<Stmt>,
+    stmts: &'a [Stmt],
     lox: &'a mut Lox,
     env: Environment,
 }
 
 #[allow(dead_code)]
 impl<'a> Interpreter<'a> {
-    pub fn new(lox: &'a mut Lox, stmts: Vec<Stmt>) -> Self {
-        Interpreter { lox, stmts, env: Environment::new() }
+    pub fn empty(lox: &'a mut Lox) -> Self {
+        Interpreter { lox, stmts: &[], env: Environment::global() }
+    }
+    
+    pub fn new(lox: &'a mut Lox, stmts: &'a [Stmt]) -> Self {
+        Interpreter { lox, stmts, env: Environment::global() }
     }
 
     pub fn interpret(&mut self) {
@@ -31,21 +34,29 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn exec(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn exec(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {  
         match stmt {
-            Stmt::Print(val)        => println!("{}", self.eval(&val)?.to_string()),
-            Stmt::Expression(expr)  => match self.eval(expr) {
-                Ok(_)  => {},
-                Err(e) => return Err(e),
-            },
+            Stmt::Print(val)         => println!("{}", self.eval(&val)?.to_string()),
+            Stmt::Expression(expr)   => { self.eval(expr)?; },
+            Stmt::Block(stmts)       => self.exec_block(stmts)?,
             Stmt::Var { name, init } => {
-                let mut val = LitVal::Nil;
-                if let Some(i) = init {
-                    val = self.eval(i)?;
-                }
+                let val = match init {
+                    Some(i) => self.eval(i)?,
+                    None    => LitVal::Nil,
+                };
                 self.env.define(&name.lex, val);
             }
         }
+        Ok(())
+    }
+
+    fn exec_block(&mut self, stmts: &Vec<Stmt>) -> Result<(), RuntimeError> {
+        let prev_env = std::mem::take(&mut self.env);
+        self.env = Environment::enclose(prev_env);
+        for stmt in stmts {
+            self.exec(&stmt)?;
+        }
+        self.env = self.env.take_enc().unwrap();
         Ok(())
     }
 

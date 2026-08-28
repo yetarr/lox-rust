@@ -1,9 +1,12 @@
-use crate::{backend::utils::{binary_op, validator}, frontend::{lexer::token::{LitVal, Token, TokenT}, parser::expr::Expr}};
-use super::super::{interpreter::{Interpreter, error::RuntimeError}};
+use crate::error::RuntimeError;
+use crate::frontend::parser::expr::Expr;
+use crate::frontend::lexer::token::{LitVal, Token, TokenT};
+use crate::backend::utils::{binary_op, validator};
+use crate::backend::interpreter::Interpreter;
 
 #[allow(dead_code)]
 impl<'a> Interpreter<'a> {
-    pub(in super::super::interpreter) fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
+    pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
             Expr::Literal(lit)               => Ok(self.eval_lit(lit)),
             Expr::Grouping(inner)            => self.eval_group(inner),
@@ -25,11 +28,8 @@ impl<'a> Interpreter<'a> {
 
     fn eval_assign(&mut self, name: &Token, val: &Expr) -> Result<LitVal, RuntimeError> {
         let val = self.eval(val)?;
-        if self.env.contains(&name.lex) {
-            self.env.define(&name.lex, val.clone());
-            return Ok(val);
-        }
-        Err(RuntimeError::new(name, &format!("Undefined variable '{}'.", name.lex)))
+        self.env.assign(name, val.clone())?;
+        Ok(val)
     }
 
     fn eval_group(&mut self, inner: &Expr) -> Result<LitVal, RuntimeError> {

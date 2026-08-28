@@ -1,5 +1,6 @@
+use crate::error::RuntimeError;
 use crate::frontend::lexer::token::{LitVal, Token};
-use crate::backend::{interpreter::error::RuntimeError, utils::validator::check_nums};
+use crate::backend::{utils::validator::check_nums};
 
 pub fn plus(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> {
     if let Some(s) = x.as_string() {

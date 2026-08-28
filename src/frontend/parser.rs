@@ -1,19 +1,20 @@
 pub mod expr;
 pub mod stmt;
 pub mod rules;
-pub mod error;
 
-use crate::{frontend::parser::{error::ParseError, stmt::Stmt}, lox::Lox};
-use super::{lexer::token::{Token, TokenT}}; 
+use crate::{error::ParseError, frontend::lexer::token::Keyword};
+use crate::lox::Lox;
+use crate::frontend::parser::stmt::Stmt;
+use super::lexer::token::{Token, TokenT}; 
 
 pub struct Parser<'a> {
-    tkns: Vec<Token>,
+    tkns: &'a [Token],
     ptr: usize,
     lox: &'a mut Lox
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tkns: Vec<Token>, lox: &'a mut Lox) -> Self {
+    pub fn new(tkns: &'a [Token], lox: &'a mut Lox) -> Self {
         Parser { 
             tkns, 
             ptr: 0,
@@ -21,14 +22,19 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<Stmt> {
+    pub fn parse(&mut self) -> Option<Vec<Stmt>> {
         let mut stmts = Vec::new();
         while !self.eof() {
-            if let Some(s) = self.declaration() {
-                stmts.push(s);
+            match self.declaration() {
+                Ok(stmt) => stmts.push(stmt),
+                Err(err) => {
+                    self.error(&err.tkn, &err.msg);
+                    self.sync();
+                }
             }
         }
-        stmts
+        if stmts.is_empty() { None }
+        else                { Some(stmts) }
     }
 
     fn tkn_match(&mut self, tkns_t: &[TokenT]) -> bool {
@@ -74,6 +80,22 @@ impl<'a> Parser<'a> {
     }
 
     fn sync(&mut self) {
-        
+        self.advance();
+
+        while !self.eof() {
+            if self.previous().token_t == TokenT::Semicolon {
+                return;
+            }
+
+            match self.peek().token_t {
+                TokenT::Keyword(kw) => match kw {
+                    Keyword::Return | Keyword::Class | Keyword::For |
+                    Keyword::Fun    | Keyword::Var   | Keyword::If  |
+                    Keyword::While  => return,
+                    _ => self.advance(),
+                }
+                _ => self.advance(),
+            };
+        }
     }
 }

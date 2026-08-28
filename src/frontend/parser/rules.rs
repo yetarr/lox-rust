@@ -1,8 +1,9 @@
-use crate::frontend::parser::error::ParseError;
+use crate::error::ParseError;
 use crate::frontend::parser::stmt::Stmt;
 
 use super::Parser;
-use super::super::{lexer::token::{Keyword, TokenT}, parser::expr::Expr};
+use super::super::parser::expr::Expr;
+use super::super::lexer::token::{Keyword, TokenT};
 
 macro_rules! binary_rule {
     ($name:ident, $next:ident, [$($tkn:expr), +]) => {
@@ -29,25 +30,11 @@ macro_rules! binary_rule {
 }
 
 impl<'a> Parser<'a> {
-    pub(in super::super::parser) fn declaration(&mut self) -> Option<Stmt> {
+    pub(in super::super::parser) fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
-            return match self.var_decl() {
-                Ok(var)  => Some(var),
-                Err(err) => {
-                    self.error(&err.tkn, &err.msg);
-                    self.sync();
-                    None
-                }
-            };
+            return self.var_decl()
         } 
-        return match self.statement() {
-            Ok(var)  => Some(var),
-            Err(err) => {
-                self.error(&err.tkn, &err.msg);
-                self.sync();
-                None
-            }
-        };
+        self.statement()
     }
 
     fn var_decl(&mut self) -> Result<Stmt, ParseError> {
@@ -56,6 +43,7 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Equal]) {
             init = Some(self.expression()?);
         }
+        
         self.consume(TokenT::Semicolon, "Expect ';' after variable declaration.")?;
         Ok(Stmt::Var { name, init })
     }
@@ -64,6 +52,11 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Print)]) {
             return self.print_stmt();
         }
+        
+        if self.tkn_match(&[TokenT::LeftBrace]) {
+            return self.block_stmt();
+        }
+        
         self.expr_stmt()
     }
 
@@ -79,7 +72,17 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Expression(expr))
     }
 
-    fn expression(&mut self) -> Result<Expr, ParseError> {
+    fn block_stmt(&mut self) -> Result<Stmt, ParseError> {
+        let mut stmts = Vec::new();
+        while !self.check_cur(&TokenT::RightBrace) {
+            stmts.push(self.declaration()?);
+        }
+        
+        self.consume(TokenT::RightBrace, "Expect '}' after block.")?;
+        Ok(Stmt::Block(stmts))
+    }
+
+    pub fn expression(&mut self) -> Result<Expr, ParseError> {
         self.assignment()
     }
 

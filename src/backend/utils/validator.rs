@@ -1,4 +1,4 @@
-use crate::{backend::interpreter::error::RuntimeError, frontend::lexer::token::Token};
+use crate::{error::RuntimeError, frontend::lexer::token::Token};
 
 pub fn check_num(op: &Token, x: Option<f64>) 
         -> Result<f64, RuntimeError>

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::super::lexer::token::{LitVal, Token};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LitVal),
