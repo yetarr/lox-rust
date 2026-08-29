@@ -1,5 +1,6 @@
 use crate::frontend::lexer::token::Token;
 
+#[derive(Debug)]
 pub struct LoxErr {
     pub msg: String
 }

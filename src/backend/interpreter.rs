@@ -14,7 +14,6 @@ pub struct Interpreter<'a> {
     env: Environment,
 }
 
-#[allow(dead_code)]
 impl<'a> Interpreter<'a> {
     pub fn empty(lox: &'a mut Lox) -> Self {
         Interpreter { lox, stmts: &[], env: Environment::global() }
@@ -85,27 +84,6 @@ impl<'a> Interpreter<'a> {
             LitVal::Boolean(b) => *b,
             LitVal::Nil        => false,
             _others            => true
-        }
-    }
-
-    fn is_equal(&self, a: &LitVal, b: &LitVal) -> bool {
-        match a {
-            LitVal::Nil => match b {
-                LitVal::Nil => true,
-                _           => false
-            }
-            LitVal::Number(a)  => match b {
-                LitVal::Number(b) => a.eq(b),
-                _                 => false
-            }
-            LitVal::String(a)  => match b {
-                LitVal::String(b) => a.eq(b),
-                _                 => false
-            }
-            LitVal::Boolean(a) => match b {
-                LitVal::Boolean(b) => a.eq(b),
-                _                  => false
-            }
         }
     }
 }

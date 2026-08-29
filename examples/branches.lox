@@ -1,0 +1,11 @@
+var x = 10;
+
+if (x == 20) {
+    print "yes";
+} else {
+    print "no";
+}
+
+if ( true or false ) {
+    print "makes sense";
+}

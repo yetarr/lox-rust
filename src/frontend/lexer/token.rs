@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_t: TokenT,

@@ -4,7 +4,6 @@ use crate::frontend::lexer::token::{Keyword, LitVal, Token, TokenT};
 use crate::backend::utils::{binary_op, validator};
 use crate::backend::interpreter::Interpreter;
 
-#[allow(dead_code)]
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
