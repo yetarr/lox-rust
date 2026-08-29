@@ -11,6 +11,11 @@ pub enum Expr {
         op: Token,
         right: Box<Expr>
     },
+    Logical {
+        left: Box<Expr>,
+        op: Token,
+        right: Box<Expr>
+    },
     Unary {
         op: Token,
         right: Box<Expr>
@@ -22,7 +27,7 @@ pub enum Expr {
     },
     Assign {
         name: Token,
-        val: Box<Expr>,
+        val: Box<Expr>
     },
     Variable(Token)
 }
@@ -33,6 +38,7 @@ impl Expr {
             Self::Literal(v)                      => v.to_string(),
             Self::Grouping(expr)                  => parenthesize("group", &[expr]),
             Self::Binary { left, op, right }      => parenthesize(&op.lex, &[left, right]),
+            Self::Logical { left, op, right }     => parenthesize(&op.lex, &[left, right]),
             Self::Unary { op, right }             => parenthesize(&op.lex, &[right]),
             Self::Ternary { cond, first, second } => parenthesize("?:", &[cond, first, second]),
             Self::Assign { name, val }            => parenthesize(&format!("={}", name.lex), &[val]),

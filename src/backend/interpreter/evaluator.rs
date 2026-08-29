@@ -1,6 +1,6 @@
 use crate::error::RuntimeError;
 use crate::frontend::parser::expr::Expr;
-use crate::frontend::lexer::token::{LitVal, Token, TokenT};
+use crate::frontend::lexer::token::{Keyword, LitVal, Token, TokenT};
 use crate::backend::utils::{binary_op, validator};
 use crate::backend::interpreter::Interpreter;
 
@@ -8,13 +8,14 @@ use crate::backend::interpreter::Interpreter;
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
-            Expr::Literal(lit)               => Ok(self.eval_lit(lit)),
-            Expr::Grouping(inner)            => self.eval_group(inner),
-            Expr::Unary { op, right }        => self.eval_unary(op, right),
-            Expr::Binary { left, op, right } => self.eval_bin(left, op, right),
-            Expr::Variable(name)             => self.eval_var(name),
-            Expr::Assign { name, val }       => self.eval_assign(name, val),
-            _                                => Ok(LitVal::Nil)
+            Expr::Literal(lit)                => Ok(self.eval_lit(lit)),
+            Expr::Grouping(inner)             => self.eval_group(inner),
+            Expr::Unary { op, right }         => self.eval_unary(op, right),
+            Expr::Binary { left, op, right }  => self.eval_bin(left, op, right),
+            Expr::Logical { left, op, right } => self.eval_logic(left, op, right),
+            Expr::Variable(name)              => self.eval_var(name),
+            Expr::Assign { name, val }        => self.eval_assign(name, val),
+            _                                 => Ok(LitVal::Nil)
         }
     }
 
@@ -34,6 +35,20 @@ impl<'a> Interpreter<'a> {
 
     fn eval_group(&mut self, inner: &Expr) -> Result<LitVal, RuntimeError> {
         self.eval(inner)
+    }
+
+    fn eval_logic(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+        let left = self.eval(left)?;
+        match op.token_t {
+            TokenT::Keyword(Keyword::Or)  => {
+                if self.is_truthy(&left) { return Ok(left) }
+            },
+            TokenT::Keyword(Keyword::And) => {
+                if !self.is_truthy(&left) { return Ok(left) }
+            },
+            _ => {}
+        }
+        self.eval(right)
     }
 
     fn eval_unary(&mut self, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {

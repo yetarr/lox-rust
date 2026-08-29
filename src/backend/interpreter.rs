@@ -36,10 +36,30 @@ impl<'a> Interpreter<'a> {
 
     fn exec(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {  
         match stmt {
-            Stmt::Print(val)         => println!("{}", self.eval(&val)?.to_string()),
-            Stmt::Expression(expr)   => { self.eval(expr)?; },
-            Stmt::Block(stmts)       => self.exec_block(stmts)?,
-            Stmt::Var { name, init } => {
+            Stmt::Print(val)                    => println!("{}", self.eval(&val)?.to_string()),
+            Stmt::Expression(expr)              => { self.eval(expr)?; },
+            Stmt::Block(stmts)                  => self.exec_block(stmts)?,
+            Stmt::If { cond, then_br, else_br } => {
+                let cond_val = self.eval(cond)?;
+                if self.is_truthy(&cond_val) {
+                    self.exec(then_br)?;
+                } else {
+                    if let Some(else_br) = else_br {
+                        self.exec(else_br)?;
+                    }
+                }
+            }
+            Stmt::While { cond, block }         => {
+                loop {
+                    let cond_val = self.eval(cond)?;
+                    if self.is_truthy(&cond_val) {
+                        self.exec(block)?;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            Stmt::Var { name, init }            => {
                 let val = match init {
                     Some(i) => Some(self.eval(i)?),
                     None    => None,
@@ -56,7 +76,7 @@ impl<'a> Interpreter<'a> {
         for stmt in stmts {
             self.exec(&stmt)?;
         }
-        self.env = self.env.take_enc().unwrap();
+        self.env = self.env.take_env().unwrap();
         Ok(())
     }
 

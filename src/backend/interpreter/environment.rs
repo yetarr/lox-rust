@@ -17,7 +17,7 @@ impl Environment {
         Environment { vals: HashMap::new(), enclosing: Some(Box::new(enclosing)) }
     }
 
-    pub fn take_enc(&mut self) -> Option<Self> {
+    pub fn take_env(&mut self) -> Option<Self> {
         if let Some(env) = &mut self.enclosing {
             return Some(std::mem::take(env));
         } 

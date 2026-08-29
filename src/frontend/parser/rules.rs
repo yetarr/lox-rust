@@ -29,6 +29,30 @@ macro_rules! binary_rule {
     };
 }
 
+macro_rules! logical_rule {
+    ($name:ident, $next:ident, [$($tkn:expr), +]) => {
+        fn $name(&mut self) -> Result<Expr, ParseError> {
+            if self.tkn_match(&[$($tkn),+]){
+                let err = Err(ParseError::new(self.previous().clone(), "Expect expression before operator."));
+                let _ = self.$next();
+                return err;
+            }
+            
+            let mut expr = self.$next();
+            while self.tkn_match(&[$($tkn),+]) {
+                let op = self.previous().clone();
+                let right = self.$next()?;
+                expr = Ok(Expr::Logical { 
+                    left: Box::new(expr?),
+                    op,
+                    right: Box::new(right),
+                });
+            }
+            expr
+        }
+    };
+}
+
 impl<'a> Parser<'a> {
     pub(in super::super::parser) fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
@@ -52,6 +76,14 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Print)]) {
             return self.print_stmt();
         }
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::If)]) {
+            return self.if_stmt();
+        }
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::While)]) {
+            return self.while_stmt();
+        }
         
         if self.tkn_match(&[TokenT::LeftBrace]) {
             return self.block_stmt();
@@ -64,6 +96,29 @@ impl<'a> Parser<'a> {
         let value = self.expression()?;
         self.consume(TokenT::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print(value))
+    }
+
+    fn if_stmt(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenT::LeftParen, "Expect '(' after 'if'.")?;
+        let cond = self.expression()?;
+        self.consume(TokenT::RightParen, "Expext ')' after if condition.")?;
+        let then = self.statement()?;
+        let mut else_opt = None; 
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Else)]) {
+            else_opt = Some(Box::new(self.statement()?));
+        }
+
+        Ok(Stmt::If { cond, then_br: Box::new(then), else_br: else_opt })
+    }
+
+    fn while_stmt(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenT::LeftParen, "Expect '(' after 'while'.")?;
+        let cond = self.expression()?;
+        self.consume(TokenT::RightParen, "Expext ')' after while condition.")?;
+        let block = self.statement()?;
+
+        Ok(Stmt::While { cond, block: Box::new(block) })
     }
 
     fn expr_stmt(&mut self) -> Result<Stmt, ParseError> {
@@ -87,7 +142,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.ternary()?;
+        let expr = self.logic_or()?;
         if self.tkn_match(&[TokenT::Equal]) {
             let equals = self.previous().clone(); 
             let val = self.assignment()?;
@@ -99,6 +154,10 @@ impl<'a> Parser<'a> {
         }
         Ok(expr)
     }
+
+    logical_rule!(logic_or, logic_and, [TokenT::Keyword(Keyword::Or)]);
+
+    logical_rule!(logic_and, ternary, [TokenT::Keyword(Keyword::And)]);
 
     fn ternary(&mut self) -> Result<Expr, ParseError> {
         let cond = self.comma();
