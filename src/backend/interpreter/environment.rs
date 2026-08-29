@@ -4,7 +4,7 @@ use crate::{error::RuntimeError, frontend::lexer::token::{LitVal, Token}};
 
 #[derive(Default)]
 pub struct Environment {
-    vals: HashMap<String, LitVal>,
+    vals: HashMap<String, Option<LitVal>>,
     enclosing: Option<Box<Environment>>,
 }
 
@@ -24,13 +24,13 @@ impl Environment {
         None
     }
     
-    pub fn define(&mut self, name: &str, val: LitVal) {
+    pub fn define(&mut self, name: &str, val: Option<LitVal>) {
         self.vals.insert(name.to_string(), val);
     }
 
     pub fn assign(&mut self, name: &Token, val: LitVal) -> Result<(), RuntimeError> {
         if let Some(prev) = self.vals.get_mut(&name.lex) {
-            *prev = val;
+            *prev = Some(val);
             return Ok(());
         } 
 
@@ -45,17 +45,21 @@ impl Environment {
     }
 
     pub fn get(&self, name: &Token) -> Result<&LitVal, RuntimeError> {
-        if let Some(val) = self.vals.get(&name.lex) {
-            return Ok(val);
+        match self.vals.get(&name.lex) {
+            Some(opt_val) => match opt_val {
+                Some(val) => Ok(val),
+                None      => Err(RuntimeError::new(name, &format!("Unitialized variable '{}'.", name.lex)))
+            },
+            None => {
+                if let Some(enc) = &self.enclosing {
+                    return enc.get(name);
+                } else {
+                    Err(RuntimeError::new(
+                        name, 
+                        &format!("Undefined variable '{}'.", name.lex)
+                    ))
+                }
+            }
         }
-        
-        if let Some(enc) = &self.enclosing {
-            return enc.get(name);
-        }
-
-        Err(RuntimeError::new(
-            name, 
-            &format!("Undefined variable '{}'.", name.lex)
-        ))
     }
 }

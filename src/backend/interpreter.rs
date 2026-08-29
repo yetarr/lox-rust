@@ -41,8 +41,8 @@ impl<'a> Interpreter<'a> {
             Stmt::Block(stmts)       => self.exec_block(stmts)?,
             Stmt::Var { name, init } => {
                 let val = match init {
-                    Some(i) => self.eval(i)?,
-                    None    => LitVal::Nil,
+                    Some(i) => Some(self.eval(i)?),
+                    None    => None,
                 };
                 self.env.define(&name.lex, val);
             }

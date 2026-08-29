@@ -9,6 +9,7 @@ var c = "global c";
         print a;
         print b;
         print c;
+        print d;
     }
     print a;
     print b;

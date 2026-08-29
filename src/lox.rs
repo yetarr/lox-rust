@@ -23,6 +23,12 @@ impl Lox {
     pub fn new() -> Self {
         Lox { errors: Vec::new(), had_parse_err: false, had_runtime_err: false }
     }
+
+    fn reset(&mut self) {
+        self.had_parse_err = false;
+        self.had_runtime_err = false;
+        self.errors.clear();
+    } 
     
     pub fn run_file(&mut self, file: String) -> Result<()> {
         let mut file = File::open(file)?;
@@ -49,9 +55,7 @@ impl Lox {
             }
     
             self.run(buf.clone().trim_end().to_string());
-            self.had_parse_err = false;
-            self.had_runtime_err = false;
-            self.errors.clear();
+            self.reset();
         }
     
         Ok(())
