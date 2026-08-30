@@ -1,4 +1,5 @@
 use crate::error::ParseError;
+use crate::frontend::lexer::token::LitVal;
 use crate::frontend::parser::stmt::Stmt;
 
 use super::Parser;
@@ -84,9 +85,17 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::While)]) {
             return self.while_stmt();
         }
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::For)]) {
+            return self.for_stmt();
+        }
         
         if self.tkn_match(&[TokenT::LeftBrace]) {
             return self.block_stmt();
+        }
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Break)]) {
+            return self.break_stmt();
         }
         
         self.expr_stmt()
@@ -116,9 +125,64 @@ impl<'a> Parser<'a> {
         self.consume(TokenT::LeftParen, "Expect '(' after 'while'.")?;
         let cond = self.expression()?;
         self.consume(TokenT::RightParen, "Expext ')' after while condition.")?;
+        self.loop_depth += 1;
         let block = self.statement()?;
+        self.loop_depth -= 1;
 
         Ok(Stmt::While { cond, block: Box::new(block) })
+    }
+
+    fn for_stmt(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenT::LeftParen, "Expect '(' after 'while'.")?;
+
+        let init;
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
+            init = Some(self.var_decl()?);
+        } else {
+            init = Some(self.expr_stmt()?);
+        }
+
+        let mut cond = None;
+        if !self.check_cur(&TokenT::Semicolon) {
+            cond = Some(self.expression()?);
+        }
+        self.consume(TokenT::Semicolon, "Expect ';' after loop condition.")?;
+
+        let mut incr = None;
+        if !self.check_cur(&TokenT::RightParen) {
+            incr = Some(self.expression()?);
+        }
+        self.consume(TokenT::RightParen, "Expect ')' after for clauses.")?;
+
+        self.loop_depth += 1;
+        let mut body = self.statement()?;
+        self.loop_depth -= 1;
+
+        if let Some(incr) = incr {
+            body = Stmt::Block(vec![body, Stmt::Expression(incr)]);
+        }
+
+        body = match cond {
+            Some(cond) => Stmt::While { cond, block: Box::new(body) },
+            None       => Stmt::While { 
+                cond: Expr::Literal(LitVal::Boolean(true)), 
+                block: Box::new(body) 
+            },
+        };
+
+        if let Some(init) = init {
+            body = Stmt::Block(vec![init, body]);
+        }
+        
+        Ok(body)
+    }
+
+    fn break_stmt(&mut self) -> Result<Stmt, ParseError> {
+        if self.loop_depth == 0 {
+            return Err(ParseError::new(self.previous().clone(), "'break' outside of loop."))
+        }
+        self.consume(TokenT::Semicolon, "Expect ';' after 'break'")?;
+        Ok(Stmt::Break)
     }
 
     fn expr_stmt(&mut self) -> Result<Stmt, ParseError> {

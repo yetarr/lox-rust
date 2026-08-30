@@ -10,7 +10,8 @@ use super::lexer::token::{Token, TokenT};
 pub struct Parser<'a> {
     tkns: &'a [Token],
     ptr: usize,
-    lox: &'a mut Lox
+    lox: &'a mut Lox,
+    loop_depth: u8,
 }
 
 impl<'a> Parser<'a> {
@@ -18,7 +19,8 @@ impl<'a> Parser<'a> {
         Parser { 
             tkns, 
             ptr: 0,
-            lox
+            lox, 
+            loop_depth: 0
         }
     }
 

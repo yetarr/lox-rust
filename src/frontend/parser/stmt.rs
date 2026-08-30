@@ -6,6 +6,7 @@ pub enum Stmt {
     Print(Expr),
     Expression(Expr),
     Block(Vec<Stmt>),
+    Break,
     If {
         cond: Expr,
         then_br: Box<Stmt>,

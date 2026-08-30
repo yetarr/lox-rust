@@ -7,7 +7,11 @@ use crate::frontend::parser::stmt::Stmt;
 use crate::lox::Lox;
 use crate::frontend::{lexer::token::LitVal};
 
-#[allow(dead_code)]
+enum ExecCode {
+    SUCCESS,
+    BREAK,
+}
+
 pub struct Interpreter<'a> {
     stmts: &'a [Stmt],
     lox: &'a mut Lox,
@@ -33,18 +37,19 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn exec(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {  
+    fn exec(&mut self, stmt: &Stmt) -> Result<ExecCode, RuntimeError> {  
         match stmt {
             Stmt::Print(val)                    => println!("{}", self.eval(&val)?.to_string()),
             Stmt::Expression(expr)              => { self.eval(expr)?; },
-            Stmt::Block(stmts)                  => self.exec_block(stmts)?,
+            Stmt::Block(stmts)                  => return self.exec_block(stmts),
+            Stmt::Break                         => return Ok(ExecCode::BREAK),
             Stmt::If { cond, then_br, else_br } => {
                 let cond_val = self.eval(cond)?;
                 if self.is_truthy(&cond_val) {
-                    self.exec(then_br)?;
+                    return self.exec(then_br);
                 } else {
                     if let Some(else_br) = else_br {
-                        self.exec(else_br)?;
+                        return self.exec(else_br);
                     }
                 }
             }
@@ -52,7 +57,10 @@ impl<'a> Interpreter<'a> {
                 loop {
                     let cond_val = self.eval(cond)?;
                     if self.is_truthy(&cond_val) {
-                        self.exec(block)?;
+                        match self.exec(block)? {
+                            ExecCode::SUCCESS => {},
+                            ExecCode::BREAK   => break,
+                        }
                     } else {
                         break;
                     }
@@ -66,17 +74,21 @@ impl<'a> Interpreter<'a> {
                 self.env.define(&name.lex, val);
             }
         }
-        Ok(())
+        
+        Ok(ExecCode::SUCCESS)
     }
 
-    fn exec_block(&mut self, stmts: &Vec<Stmt>) -> Result<(), RuntimeError> {
+    fn exec_block(&mut self, stmts: &Vec<Stmt>) -> Result<ExecCode, RuntimeError> {
         let prev_env = std::mem::take(&mut self.env);
         self.env = Environment::enclose(prev_env);
         for stmt in stmts {
-            self.exec(&stmt)?;
+            match self.exec(stmt)? {
+                ExecCode::SUCCESS => {},
+                ExecCode::BREAK   => return Ok(ExecCode::BREAK),
+            }
         }
         self.env = self.env.take_env().unwrap();
-        Ok(())
+        Ok(ExecCode::SUCCESS)
     }
 
     fn is_truthy(&self, val: &LitVal) -> bool {

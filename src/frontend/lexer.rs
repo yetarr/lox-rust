@@ -31,6 +31,7 @@ static KEYWORDS: phf::Map<&'static str, Keyword> = phf_map! {
     "true"   => Keyword::True,
     "var"    => Keyword::Var,
     "while"  => Keyword::While,
+    "break"  => Keyword::Break,
 };
 
 fn lookup_keyword(ident: &str) -> Option<TokenT> {

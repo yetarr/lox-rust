@@ -29,6 +29,7 @@ pub enum TokenT {
 pub enum Keyword {
     And, Class, Else, False, Fun, For, If, Nil, Or,
     Print, Return, Super, This, True, Var, While, 
+    Break
 }
 
 #[derive(Debug, PartialEq, Clone)]
