@@ -7,14 +7,15 @@ use crate::backend::interpreter::Interpreter;
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
-            Expr::Literal(lit)                => Ok(self.eval_lit(lit)),
-            Expr::Grouping(inner)             => self.eval_group(inner),
-            Expr::Unary { op, right }         => self.eval_unary(op, right),
-            Expr::Binary { left, op, right }  => self.eval_bin(left, op, right),
-            Expr::Logical { left, op, right } => self.eval_logic(left, op, right),
-            Expr::Variable(name)              => self.eval_var(name),
-            Expr::Assign { name, val }        => self.eval_assign(name, val),
-            _                                 => Ok(LitVal::Nil)
+            Expr::Literal(lit)                 => Ok(self.eval_lit(lit)),
+            Expr::Grouping(inner)              => self.eval_group(inner),
+            Expr::Unary { op, right }          => self.eval_unary(op, right),
+            Expr::Binary { left, op, right }   => self.eval_bin(left, op, right),
+            Expr::Logical { left, op, right }  => self.eval_logic(left, op, right),
+            Expr::Variable(name)               => self.eval_var(name),
+            Expr::Assign { name, val }         => self.eval_assign(name, val),
+            Expr::Call { callee, paren, args } => self.eval_call(callee, paren, args),
+            _                                  => Ok(LitVal::Nil)
         }
     }
 
@@ -76,6 +77,33 @@ impl<'a> Interpreter<'a> {
             TokenT::BangEqual    => binary_op::not_eq(&left, &right),
             TokenT::EqualEqual   => binary_op::eq(&left, &right),
             _                    => Ok(LitVal::Nil)
+        }
+    }
+
+    fn eval_call(&mut self, callee: &Expr, paren: &Token, args: &Vec<Expr>) -> Result<LitVal, RuntimeError> {
+        let callee = self.eval(callee)?;
+        let mut args_val = Vec::new();
+        for arg in args {
+            args_val.push(self.eval(arg)?);
+        }
+
+        match callee {
+            LitVal::Callable(func) => {
+                if func.arity() != args.len() {
+                    return Err(
+                        RuntimeError::new(
+                            paren, 
+                            &format!(
+                                "Expected {} arguments but got {}", 
+                                func.arity(), 
+                                args_val.len())
+                        )
+                    );
+                }
+
+                func.call(self, args_val)
+            }
+            _ => return Err(RuntimeError::new(paren, "Can only call functions and classes."))
         }
     }
 }

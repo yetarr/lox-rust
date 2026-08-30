@@ -6,6 +6,11 @@ use super::super::lexer::token::{LitVal, Token};
 pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LitVal),
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        args: Vec<Expr>
+    },
     Binary {
         left: Box<Expr>,
         op: Token,
@@ -42,7 +47,11 @@ impl Expr {
             Self::Unary { op, right }             => parenthesize(&op.lex, &[right]),
             Self::Ternary { cond, first, second } => parenthesize("?:", &[cond, first, second]),
             Self::Assign { name, val }            => parenthesize(&format!("={}", name.lex), &[val]),
-            Self::Variable(id)                    => parenthesize(&format!("var {}", id.lex), &[])
+            Self::Variable(id)                    => parenthesize(&format!("var {}", id.lex), &[]),
+            Self::Call { callee, paren: _, args } => {
+                let arg_refs: Vec<&Expr> = args.iter().collect();
+                parenthesize(&format!("call {}", callee.expand()), &arg_refs)
+            }
         }
     }
 }

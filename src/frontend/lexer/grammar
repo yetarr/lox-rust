@@ -18,7 +18,7 @@ whileStmt   -> "while" "(" expression ")" breakStmt ;
 
 forStmt     -> "for" "(" ( varDecl | exprStmt | ";" )
                 expression? ";"
-                expression? ";" breakStmt ;
+                expression? ";" ")" breakStmt ;
 
 breakStmt   -> "break" ";" ;
                 
@@ -45,7 +45,11 @@ term        -> factor? ( ( "-" | "+" ) factor )* ;
 factor      -> unary? ( ( "/" | "*" ) unary )* ;
 
 unary       -> ( "!" | "-" ) unary
-            | primary ;
+            | call ;
+
+call        -> primary ( "(" arguments? ")" )* ;
+
+arguments   -> expression ( "," expression )*
             
 primary     -> NUMBER | STRING 
             | "true" | "false" | "nil"

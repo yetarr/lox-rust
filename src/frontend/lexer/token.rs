@@ -1,3 +1,7 @@
+use std::rc::Rc;
+
+use crate::backend::interpreter::callable::Callable;
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_t: TokenT,
@@ -32,21 +36,36 @@ pub enum Keyword {
     Break
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum LitVal {
     String(String),
     Number(f64),
     Boolean(bool),
     Nil,
+    Callable(Rc<dyn Callable>),
+}
+
+impl PartialEq for LitVal {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (LitVal::String(a), LitVal::String(b)) => a == b,
+            (LitVal::Number(a), LitVal::Number(b)) => a == b,
+            (LitVal::Boolean(a), LitVal::Boolean(b)) => a == b,
+            (LitVal::Nil, LitVal::Nil) => true,
+            (LitVal::Callable(a), LitVal::Callable(b)) => Rc::ptr_eq(a, b),
+            _ => false,
+        }
+    }
 }
 
 impl LitVal {
     pub fn to_string(&self) -> String {
         match self {
-            LitVal::String(s)  => s.clone(),
-            LitVal::Number(n)  => n.to_string(),
-            LitVal::Boolean(b) => b.to_string(),
-            LitVal::Nil        => String::from("nil"),
+            LitVal::String(s)      => s.clone(),
+            LitVal::Number(n)      => n.to_string(),
+            LitVal::Boolean(b)     => b.to_string(),
+            LitVal::Nil            => String::from("nil"),
+            LitVal::Callable(func) => func.to_string(),
         }
     }
     

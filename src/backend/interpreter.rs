@@ -1,7 +1,9 @@
 pub mod evaluator;
 pub mod environment;
+pub mod callable;
 
 use crate::backend::interpreter::environment::Environment;
+use crate::backend::native_fn;
 use crate::error::RuntimeError;
 use crate::frontend::parser::stmt::Stmt;
 use crate::lox::Lox;
@@ -24,7 +26,10 @@ impl<'a> Interpreter<'a> {
     }
     
     pub fn new(lox: &'a mut Lox, stmts: &'a [Stmt]) -> Self {
-        Interpreter { lox, stmts, env: Environment::global() }
+        let mut global = Environment::global();
+        global.define("clock", Some(native_fn::clock()));
+        
+        Interpreter { lox, stmts, env: global }
     }
 
     pub fn interpret(&mut self) {

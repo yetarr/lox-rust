@@ -83,6 +83,7 @@ fn is_eq(x: &LitVal, y: &LitVal) -> bool {
         LitVal::Boolean(b1) => match y {
             LitVal::Boolean(b2) => b1 == b2,
             _                  => false
-        }
+        },
+        _ => false
     }
 }
