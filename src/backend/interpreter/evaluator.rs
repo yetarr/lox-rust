@@ -89,6 +89,7 @@ impl<'a> Interpreter<'a> {
 
         match callee {
             LitVal::Callable(func) => {
+                println!("{:#?} {}", args, func.arity());
                 if func.arity() != args.len() {
                     return Err(
                         RuntimeError::new(

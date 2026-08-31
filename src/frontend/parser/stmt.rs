@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::frontend::parser::expr::Expr;
 use crate::frontend::lexer::token::Token;
 
@@ -20,4 +22,23 @@ pub enum Stmt {
         name: Token,
         init: Option<Expr>,
     },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>
+    }
+}
+
+pub enum FunType {
+    Function,
+    Method
+}
+
+impl Display for FunType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunType::Function => write!(f, "function"),
+            FunType::Method   => write!(f, "method")
+        }
+    }
 }

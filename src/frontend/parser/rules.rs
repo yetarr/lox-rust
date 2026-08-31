@@ -1,6 +1,6 @@
 use crate::error::ParseError;
 use crate::frontend::lexer::token::LitVal;
-use crate::frontend::parser::stmt::Stmt;
+use crate::frontend::parser::stmt::{FunType, Stmt};
 
 use super::Parser;
 use super::super::parser::expr::Expr;
@@ -59,6 +59,11 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
             return self.var_decl()
         } 
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
+            return self.fun_decl(FunType::Function)
+        }
+        
         self.statement()
     }
 
@@ -71,6 +76,28 @@ impl<'a> Parser<'a> {
         
         self.consume(TokenT::Semicolon, "Expect ';' after variable declaration.")?;
         Ok(Stmt::Var { name, init })
+    }
+
+    fn fun_decl(&mut self, fun_t: FunType) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenT::Identifier, &format!("Expect {} name.", fun_t))?.clone();
+        self.consume(TokenT::LeftParen, &format!("Expect '(' {} name.", fun_t))?;
+        let mut params = Vec::new();
+        if !self.check_cur(&TokenT::RightParen) {
+            loop {
+                if params.len() >= 255 {
+                    self.error(&self.peek().clone(), "Can't have more than 255 parameters.");
+                }
+
+                params.push(self.consume(TokenT::Identifier, "Expect parameter name.")?.clone());
+
+                if !self.tkn_match(&[TokenT::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenT::RightParen, "Expect ')' after parameters.")?;
+        self.consume(TokenT::LeftBrace, &format!("Expect '{{' before {} body.", fun_t))?;
+        Ok(Stmt::Function { name, params, body: self.block()? })
     }
 
     pub fn statement(&mut self) -> Result<Stmt, ParseError> {
@@ -192,13 +219,17 @@ impl<'a> Parser<'a> {
     }
 
     fn block_stmt(&mut self) -> Result<Stmt, ParseError> {
+        Ok(Stmt::Block(self.block()?))
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut stmts = Vec::new();
         while !self.check_cur(&TokenT::RightBrace) {
             stmts.push(self.declaration()?);
         }
         
         self.consume(TokenT::RightBrace, "Expect '}' after block.")?;
-        Ok(Stmt::Block(stmts))
+        Ok(stmts)
     }
 
     pub fn expression(&mut self) -> Result<Expr, ParseError> {
@@ -224,7 +255,7 @@ impl<'a> Parser<'a> {
     logical_rule!(logic_and, ternary, [TokenT::Keyword(Keyword::And)]);
 
     fn ternary(&mut self) -> Result<Expr, ParseError> {
-        let cond = self.comma();
+        let cond = self.equality();
 
         if self.tkn_match(&[TokenT::Query]) {
             let first = self.expression()?;
@@ -239,7 +270,7 @@ impl<'a> Parser<'a> {
         cond
     }
 
-    binary_rule!(comma, equality, [TokenT::Comma]);
+    // binary_rule!(comma, equality, [TokenT::Comma]);
 
     binary_rule!(equality, comparison, [TokenT::BangEqual, TokenT::EqualEqual]);
     
@@ -265,7 +296,7 @@ impl<'a> Parser<'a> {
         let mut expr = self.primary();
 
         loop {
-            if self.tkn_match(&[TokenT::LeftBrace]) {
+            if self.tkn_match(&[TokenT::LeftParen]) {
                 expr = self.finish_call(expr?);
             } else {
                 break;

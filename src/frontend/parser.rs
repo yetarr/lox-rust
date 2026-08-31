@@ -5,7 +5,7 @@ pub mod rules;
 use crate::{error::ParseError, frontend::lexer::token::Keyword};
 use crate::lox::Lox;
 use crate::frontend::parser::stmt::Stmt;
-use super::lexer::token::{Token, TokenT}; 
+use super::lexer::token::{Token, TokenT};
 
 pub struct Parser<'a> {
     tkns: &'a [Token],
@@ -16,10 +16,10 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(tkns: &'a [Token], lox: &'a mut Lox) -> Self {
-        Parser { 
-            tkns, 
+        Parser {
+            tkns,
             ptr: 0,
-            lox, 
+            lox,
             loop_depth: 0
         }
     }
@@ -28,7 +28,10 @@ impl<'a> Parser<'a> {
         let mut stmts = Vec::new();
         while !self.eof() {
             match self.declaration() {
-                Ok(stmt) => stmts.push(stmt),
+                Ok(stmt) => {
+                    println!("{:#?}", stmt);
+                    stmts.push(stmt);
+                },
                 Err(err) => {
                     self.error(&err.tkn, &err.msg);
                     self.sync();

@@ -2,6 +2,9 @@ pub mod evaluator;
 pub mod environment;
 pub mod callable;
 
+use std::rc::Rc;
+
+use crate::backend::interpreter::callable::LoxFn;
 use crate::backend::interpreter::environment::Environment;
 use crate::backend::native_fn;
 use crate::error::RuntimeError;
@@ -46,8 +49,13 @@ impl<'a> Interpreter<'a> {
         match stmt {
             Stmt::Print(val)                    => println!("{}", self.eval(&val)?.to_string()),
             Stmt::Expression(expr)              => { self.eval(expr)?; },
-            Stmt::Block(stmts)                  => return self.exec_block(stmts),
             Stmt::Break                         => return Ok(ExecCode::BREAK),
+            Stmt::Block(stmts)                  => {
+                let prev_env = std::mem::take(&mut self.env);
+                let env = Environment::enclose(prev_env);
+                let code = self.exec_block(stmts, env);
+                return code;
+            }
             Stmt::If { cond, then_br, else_br } => {
                 let cond_val = self.eval(cond)?;
                 if self.is_truthy(&cond_val) {
@@ -78,14 +86,19 @@ impl<'a> Interpreter<'a> {
                 };
                 self.env.define(&name.lex, val);
             }
-        }
+            Stmt::Function { name, params, body } => {
+                let fun = Rc::new(
+                    LoxFn::new(name.clone(), params.clone(), body.clone())
+                );
+                self.env.define(&name.lex, Some(LitVal::Callable(fun)));
+            }
+        };
         
         Ok(ExecCode::SUCCESS)
     }
 
-    fn exec_block(&mut self, stmts: &Vec<Stmt>) -> Result<ExecCode, RuntimeError> {
-        let prev_env = std::mem::take(&mut self.env);
-        self.env = Environment::enclose(prev_env);
+    fn exec_block(&mut self, stmts: &Vec<Stmt>, env: Environment) -> Result<ExecCode, RuntimeError> {
+        self.env = env;
         for stmt in stmts {
             match self.exec(stmt)? {
                 ExecCode::SUCCESS => {},
