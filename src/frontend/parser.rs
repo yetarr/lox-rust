@@ -28,10 +28,7 @@ impl<'a> Parser<'a> {
         let mut stmts = Vec::new();
         while !self.eof() {
             match self.declaration() {
-                Ok(stmt) => {
-                    println!("{:#?}", stmt);
-                    stmts.push(stmt);
-                },
+                Ok(stmt) => stmts.push(stmt),
                 Err(err) => {
                     self.error(&err.tkn, &err.msg);
                     self.sync();
