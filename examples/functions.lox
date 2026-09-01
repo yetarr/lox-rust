@@ -2,5 +2,9 @@ fun sayHi(first, last) {
     print "Hi, " + first + " " + last + "!";
 }
 
-print clock();
+fun returnClock() {
+    return clock();
+}
+
 sayHi("Dear", "Lurker");
+print "It is " + returnClock() + ", in seconds";

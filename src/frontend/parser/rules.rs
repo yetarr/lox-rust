@@ -124,6 +124,10 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Break)]) {
             return self.break_stmt();
         }
+
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Return)]) {
+            return self.return_stmt();
+        }
         
         self.expr_stmt()
     }
@@ -230,6 +234,17 @@ impl<'a> Parser<'a> {
         
         self.consume(TokenT::RightBrace, "Expect '}' after block.")?;
         Ok(stmts)
+    }
+
+    fn return_stmt(&mut self) -> Result<Stmt, ParseError> {
+        let key = self.previous().clone();
+        let mut val = None;
+        if !self.check_cur(&TokenT::Semicolon) {
+            val = Some(self.expression()?);
+        }
+
+        self.consume(TokenT::Semicolon, "Expect ';' after return value.")?;
+        Ok(Stmt::Return { key, val })
     }
 
     pub fn expression(&mut self) -> Result<Expr, ParseError> {

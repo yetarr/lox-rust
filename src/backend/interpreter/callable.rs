@@ -1,7 +1,7 @@
 use crate::backend::interpreter::environment::Environment;
 use crate::error::RuntimeError;
 use crate::frontend::lexer::token::{LitVal, Token};
-use crate::backend::interpreter::Interpreter;
+use crate::backend::interpreter::{ExecCode, Interpreter};
 use crate::frontend::parser::stmt::Stmt;
 
 pub trait Callable: std::fmt::Debug {
@@ -41,8 +41,10 @@ impl Callable for LoxFn {
             env.define(&p.lex, args.pop());
         });
 
-        intr.exec_block(&self.body, env)?;
-        todo!()
+        if let ExecCode::Return(v) = intr.exec_block(&self.body, env)? {
+            return Ok(v);
+        }
+        Ok(LitVal::Nil)
     }
 }
 
