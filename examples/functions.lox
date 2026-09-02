@@ -17,4 +17,4 @@ var sum = fun (a, b) {
 
 fun() {};
 
-print sum(40, 27);
+print sum(40, 27); // 67

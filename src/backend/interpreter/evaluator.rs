@@ -78,6 +78,7 @@ impl<'a> Interpreter<'a> {
             TokenT::LessEqual    => binary_op::less_eq(op, &left, &right),
             TokenT::BangEqual    => binary_op::not_eq(&left, &right),
             TokenT::EqualEqual   => binary_op::eq(&left, &right),
+            TokenT::Comma        => Ok(right),
             _                    => Ok(LitVal::Nil)
         }
     }

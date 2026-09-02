@@ -10,6 +10,7 @@ pub struct Parser<'a> {
     ptr: usize,
     lox: &'a mut Lox,
     loop_depth: u8,
+    in_args: bool
 }
 
 impl<'a> Parser<'a> {
@@ -18,7 +19,8 @@ impl<'a> Parser<'a> {
             tkns,
             ptr: 0,
             lox,
-            loop_depth: 0
+            loop_depth: 0,
+            in_args: false,
         }
     }
 

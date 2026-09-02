@@ -69,8 +69,6 @@ impl<'a> Parser<'a> {
     }
     
     fn anon_fun(&mut self) -> Result<Expr, ParseError> {
-        // var x = fun...
-        // fun function...
         let expr = self.logic_or();
         if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
             self.consume(TokenT::LeftParen, "Expect '(' after 'fun'.")?;
@@ -85,8 +83,8 @@ impl<'a> Parser<'a> {
     logical_rule!(logic_and, ternary, [TokenT::Keyword(Keyword::And)]);
     
     fn ternary(&mut self) -> Result<Expr, ParseError> {
-        let cond = self.equality();
-    
+        let cond = if self.in_args { self.equality() } else { self.comma() };
+
         if self.tkn_match(&[TokenT::Query]) {
             let first = self.expression()?;
             self.consume(TokenT::Colon, "Expect ':' after first expression.")?;
@@ -100,7 +98,7 @@ impl<'a> Parser<'a> {
         cond
     }
     
-    // binary_rule!(comma, equality, [TokenT::Comma]);
+    binary_rule!(comma, equality, [TokenT::Comma]);
     
     binary_rule!(equality, comparison, [TokenT::BangEqual, TokenT::EqualEqual]);
     
@@ -124,7 +122,6 @@ impl<'a> Parser<'a> {
     
     fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary();
-    
         loop {
             if self.tkn_match(&[TokenT::LeftParen]) {
                 expr = self.finish_call(expr?);
@@ -138,6 +135,7 @@ impl<'a> Parser<'a> {
     fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
         let mut args = Vec::new();
         if !self.check_cur(&TokenT::RightParen) {
+            self.in_args = true;
             args.push(self.expression()?);
             while self.tkn_match(&[TokenT::Comma]) {
                 args.push(self.expression()?);
@@ -149,6 +147,7 @@ impl<'a> Parser<'a> {
         }
         
         let paren = self.consume(TokenT::RightParen, "Expect ')' after arguments")?.clone();
+        self.in_args = false;
         Ok(Expr::Call { callee: Box::new(callee), paren, args })
     }
     
