@@ -36,7 +36,7 @@ expression  -> assignment ;
 
 assignment  -> IDENTIFIER "=" assignment | anonFun ;
 
-anonFun     -> "fun" ( "(" parameters? ")" ) block | logic_or ;
+anon_fun     -> "fun" ( "(" parameters? ")" ) block | logic_or ;
 
 logic_or    -> logic_and ( "or" logic_and )? ;
 

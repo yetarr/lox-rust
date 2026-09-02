@@ -27,6 +27,7 @@ impl<'a> Parser<'a> {
 
     fn fun_decl(&mut self, fun_t: FunType) -> Result<Stmt, ParseError> {
         if !self.check_cur(&TokenT::Identifier) {
+            self.retreat();
             return self.statement();
         }
         

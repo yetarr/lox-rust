@@ -60,6 +60,10 @@ impl<'a> Parser<'a> {
         &self.tkns[self.ptr - 1]
     }
 
+    fn retreat(&mut self) {
+        if !self.eof() { self.ptr -= 1; }
+    }
+
     fn advance(&mut self) -> &Token {
         if !self.eof() { self.ptr += 1; }
         self.previous()

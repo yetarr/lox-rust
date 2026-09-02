@@ -69,6 +69,8 @@ impl<'a> Parser<'a> {
     }
     
     fn anon_fun(&mut self) -> Result<Expr, ParseError> {
+        // var x = fun...
+        // fun function...
         let expr = self.logic_or();
         if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
             self.consume(TokenT::LeftParen, "Expect '(' after 'fun'.")?;
