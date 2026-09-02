@@ -5,12 +5,12 @@ impl<'a> Parser<'a> {
     pub fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
             return self.var_decl()
-        } 
+        }
 
         if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
             return self.fun_decl(FunType::Function)
         }
-        
+
         self.statement()
     }
 
@@ -20,7 +20,7 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Equal]) {
             init = Some(self.expression()?);
         }
-        
+
         self.consume(TokenT::Semicolon, "Expect ';' after variable declaration.")?;
         Ok(Stmt::Var { name, init })
     }
@@ -30,10 +30,10 @@ impl<'a> Parser<'a> {
             self.retreat();
             return self.statement();
         }
-        
+
         let name = self.consume(TokenT::Identifier, &format!("Expect {} name.", fun_t))?.clone();
         self.consume(TokenT::LeftParen, &format!("Expect '(' after {} name.", fun_t))?;
-        
+
         let (params, body) = self.parameters(fun_t)?;
         Ok(Stmt::Function { name, params, body })
     }
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::For)]) {
             return self.for_stmt();
         }
-        
+
         if self.tkn_match(&[TokenT::LeftBrace]) {
             return self.block_stmt();
         }
@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Return)]) {
             return self.return_stmt();
         }
-        
+
         self.expr_stmt()
     }
 
@@ -81,7 +81,7 @@ impl<'a> Parser<'a> {
         let cond = self.expression()?;
         self.consume(TokenT::RightParen, "Expext ')' after if condition.")?;
         let then = self.statement()?;
-        let mut else_opt = None; 
+        let mut else_opt = None;
 
         if self.tkn_match(&[TokenT::Keyword(Keyword::Else)]) {
             else_opt = Some(Box::new(self.statement()?));
@@ -133,8 +133,8 @@ impl<'a> Parser<'a> {
 
         body = match cond {
             Some(cond) => Stmt::While { cond, block: Box::new(body) },
-            None       => Stmt::While { 
-                cond: Expr::Literal(LitVal::Boolean(true)), 
+            None       => Stmt::While {
+                cond: Expr::Literal(LitVal::Boolean(true)),
                 block: Box::new(body)
             },
         };
@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
         if let Some(init) = init {
             body = Stmt::Block(vec![init, body]);
         }
-        
+
         Ok(body)
     }
 
