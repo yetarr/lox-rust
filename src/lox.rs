@@ -4,11 +4,12 @@ use std::io::{Write, stdin, stdout};
 
 use anyhow::Result;
 
+use crate::prelude::*;
+
 use crate::backend::interpreter::Interpreter;
-use crate::error::{LoxErr, RuntimeError};
+use crate::error::LoxErr;
 use crate::frontend::parser::Parser;
 use crate::frontend::lexer::Scanner;
-use crate::frontend::lexer::token::{Token, TokenT};
 
 const DATA_FORMAT_ERROR: i32 = 65;
 const INTERNAL_SOFTWARE_ERROR: i32 = 70;

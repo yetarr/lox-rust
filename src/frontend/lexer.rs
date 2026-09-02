@@ -2,8 +2,8 @@ pub mod token;
 
 use phf::phf_map;
 
+use crate::prelude::*;
 use crate::{lox::Lox, utils};
-use token::{Keyword, Token, TokenT, LitVal};
 
 pub struct Scanner<'a> {
     src: String,

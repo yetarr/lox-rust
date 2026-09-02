@@ -1,12 +1,9 @@
 use std::rc::Rc;
 
+use crate::prelude::*;
 use crate::backend::interpreter::callable::AnonymousFn;
-use crate::error::RuntimeError;
-use crate::frontend::parser::expr::Expr;
-use crate::frontend::lexer::token::{Keyword, LitVal, Token, TokenT};
 use crate::backend::utils::{binary_op, validator};
 use crate::backend::interpreter::Interpreter;
-use crate::frontend::parser::stmt::Stmt;
 
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {

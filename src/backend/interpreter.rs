@@ -4,13 +4,11 @@ pub mod callable;
 
 use std::rc::Rc;
 
+use crate::prelude::*;
 use crate::backend::interpreter::callable::LoxFn;
 use crate::backend::interpreter::environment::Environment;
 use crate::backend::native_fn;
-use crate::error::RuntimeError;
-use crate::frontend::parser::stmt::Stmt;
 use crate::lox::Lox;
-use crate::frontend::{lexer::token::LitVal};
 
 enum ExecCode {
     Success,

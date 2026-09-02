@@ -1,8 +1,6 @@
+use crate::prelude::*;
 use crate::backend::interpreter::environment::Environment;
-use crate::error::RuntimeError;
-use crate::frontend::lexer::token::{LitVal, Token};
 use crate::backend::interpreter::{ExecCode, Interpreter};
-use crate::frontend::parser::stmt::Stmt;
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;

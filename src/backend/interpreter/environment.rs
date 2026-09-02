@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{error::RuntimeError, frontend::lexer::token::{LitVal, Token}};
+use crate::prelude::*;
 
 #[derive(Default)]
 pub struct Environment {

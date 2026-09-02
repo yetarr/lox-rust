@@ -1,5 +1,4 @@
-use crate::error::RuntimeError;
-use crate::frontend::lexer::token::{LitVal, Token};
+use crate::prelude::*;
 use crate::backend::{utils::validator::check_nums};
 
 pub fn plus(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> {
