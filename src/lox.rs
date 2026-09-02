@@ -83,7 +83,7 @@ impl Lox {
                 }
 
                 let mut intr = Interpreter::new(self, &stmts);
-                intr.interpret();
+                let _ = intr.interpret();
 
                 if self.had_runtime_err {
                     self.report_errors();
