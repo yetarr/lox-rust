@@ -4,7 +4,7 @@ declaration -> funDecl | varDecl | statement ;
 
 funDecl     -> "fun" function ;
 
-function    -> IDENTIFIER "(" parameters? ")" block;
+function    -> IDENTIFIER "(" parameters? ")" block | statement;
 
 parameters  -> IDENTIFIER ( "," IDENTIFIER )* ;
 
@@ -34,7 +34,9 @@ returnStmt  -> "return" expression? ";" ;
 
 expression  -> assignment ;
 
-assignment  -> IDENTIFIER "=" assignment | logic_or ;
+assignment  -> IDENTIFIER "=" assignment | anonFun ;
+
+anonFun     -> "fun" ( "(" parameters? ")" ) block | logic_or ;
 
 logic_or    -> logic_and ( "or" logic_and )? ;
 

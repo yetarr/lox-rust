@@ -1,11 +1,17 @@
 use std::fmt::Display;
 
+use crate::frontend::parser::stmt::Stmt;
+
 use super::super::lexer::token::{LitVal, Token};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LitVal),
+    AnonFun {
+        params: Vec<Token>,
+        body: Vec<Stmt>
+    },
     Call {
         callee: Box<Expr>,
         paren: Token,
@@ -48,6 +54,13 @@ impl Expr {
             Self::Ternary { cond, first, second } => parenthesize("?:", &[cond, first, second]),
             Self::Assign { name, val }            => parenthesize(&format!("={}", name.lex), &[val]),
             Self::Variable(id)                    => parenthesize(&format!("var {}", id.lex), &[]),
+            Self::AnonFun { params, body: _ }        => {
+                let mut str = String::from("fun (");
+                for param in params {
+                    str = format!("{} {}", str, param.lex);
+                }
+                format!("{} )", str)
+            }
             Self::Call { callee, paren: _, args } => {
                 let arg_refs: Vec<&Expr> = args.iter().collect();
                 parenthesize(&format!("call {}", callee.expand()), &arg_refs)

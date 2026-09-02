@@ -79,8 +79,12 @@ impl<'a> Parser<'a> {
     }
 
     fn fun_decl(&mut self, fun_t: FunType) -> Result<Stmt, ParseError> {
+        if !self.check_cur(&TokenT::Identifier) {
+            return self.statement();
+        }
+        
         let name = self.consume(TokenT::Identifier, &format!("Expect {} name.", fun_t))?.clone();
-        self.consume(TokenT::LeftParen, &format!("Expect '(' {} name.", fun_t))?;
+        self.consume(TokenT::LeftParen, &format!("Expect '(' after {} name.", fun_t))?;
         let mut params = Vec::new();
         if !self.check_cur(&TokenT::RightParen) {
             loop {
@@ -197,7 +201,7 @@ impl<'a> Parser<'a> {
             Some(cond) => Stmt::While { cond, block: Box::new(body) },
             None       => Stmt::While { 
                 cond: Expr::Literal(LitVal::Boolean(true)), 
-                block: Box::new(body) 
+                block: Box::new(body)
             },
         };
 
@@ -252,7 +256,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.logic_or()?;
+        let expr = self.anon_fun()?;
         if self.tkn_match(&[TokenT::Equal]) {
             let equals = self.previous().clone(); 
             let val = self.assignment()?;
@@ -263,6 +267,31 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(expr)
+    }
+
+    fn anon_fun(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.logic_or();
+        if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
+            self.consume(TokenT::LeftParen, "Expect '(' after 'fun'.")?;
+            let mut params = Vec::new();
+            if !self.check_cur(&TokenT::RightParen) {
+                loop {
+                    if params.len() >= 255 {
+                        self.error(&self.peek().clone(), "Can't have more than 255 parameters.");
+                    }
+    
+                    params.push(self.consume(TokenT::Identifier, "Expect parameter name.")?.clone());
+    
+                    if !self.tkn_match(&[TokenT::Comma]) {
+                        break;
+                    }
+                }
+            }
+            self.consume(TokenT::RightParen, "Expect ')' after parameters.")?;
+            self.consume(TokenT::LeftBrace, "Expect '{' before function body.")?;
+            return Ok(Expr::AnonFun { params, body: self.block()? })
+        }
+        expr
     }
 
     logical_rule!(logic_or, logic_and, [TokenT::Keyword(Keyword::Or)]);

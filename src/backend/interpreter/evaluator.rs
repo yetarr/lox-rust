@@ -1,8 +1,12 @@
+use std::rc::Rc;
+
+use crate::backend::interpreter::callable::AnonymousFn;
 use crate::error::RuntimeError;
 use crate::frontend::parser::expr::Expr;
 use crate::frontend::lexer::token::{Keyword, LitVal, Token, TokenT};
 use crate::backend::utils::{binary_op, validator};
 use crate::backend::interpreter::Interpreter;
+use crate::frontend::parser::stmt::Stmt;
 
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
@@ -14,6 +18,7 @@ impl<'a> Interpreter<'a> {
             Expr::Logical { left, op, right }  => self.eval_logic(left, op, right),
             Expr::Variable(name)               => self.eval_var(name),
             Expr::Assign { name, val }         => self.eval_assign(name, val),
+            Expr::AnonFun { params, body }     => self.eval_anon_fun(params.clone(), body.clone()),
             Expr::Call { callee, paren, args } => self.eval_call(callee, paren, args),
             _                                  => Ok(LitVal::Nil)
         }
@@ -78,6 +83,11 @@ impl<'a> Interpreter<'a> {
             TokenT::EqualEqual   => binary_op::eq(&left, &right),
             _                    => Ok(LitVal::Nil)
         }
+    }
+
+    fn eval_anon_fun(&mut self, params: Vec<Token>, body: Vec<Stmt>) -> Result<LitVal, RuntimeError> {
+        let fun = AnonymousFn::new(params, body);
+        Ok(LitVal::Callable(Rc::new(fun)))
     }
 
     fn eval_call(&mut self, callee: &Expr, paren: &Token, args: &Vec<Expr>) -> Result<LitVal, RuntimeError> {

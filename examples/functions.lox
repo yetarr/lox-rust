@@ -1,10 +1,20 @@
-fun sayHi(first, last) {
-    print "Hi, " + first + " " + last + "!";
+fun makeCounter() {
+    var i = 0;
+    fun count() {
+        i = i + 1;
+        print i;
+    }
+    return count;
 }
 
-fun returnClock() {
-    return clock();
-}
+var counter = makeCounter();
+counter(); // "1".
+counter(); // "2".
 
-sayHi("Dear", "Lurker");
-print "It is " + returnClock() + ", in seconds";
+var sum = fun (a, b) {
+    return a + b;
+};
+
+fun() {};
+
+print sum(40, 27);
