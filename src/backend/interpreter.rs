@@ -10,6 +10,7 @@ use crate::backend::interpreter::environment::Environment;
 use crate::backend::native_fn;
 use crate::lox::Lox;
 
+#[derive(Debug)]
 enum ExecCode {
     Success,
     Return(LitVal),
@@ -34,14 +35,18 @@ impl<'a> Interpreter<'a> {
         Interpreter { lox, stmts, env: global }
     }
 
-    pub fn interpret(&mut self) {
+    pub fn interpret(&mut self) -> Result<(), RuntimeError> {
         let stmts = std::mem::take(&mut self.stmts);
         for s in stmts {
             match self.exec(&s) {
                 Ok(_)  => {},
-                Err(e) => self.lox.error_runtime(&e),
+                Err(e) => {
+                    self.lox.error_runtime(&e);
+                    return Err(e)
+                },
             }
         }
+        Ok(())
     }
 
     fn exec(&mut self, stmt: &Stmt) -> Result<ExecCode, RuntimeError> {  
@@ -52,8 +57,7 @@ impl<'a> Interpreter<'a> {
             Stmt::Block(stmts)                    => {
                 let prev_env = std::mem::take(&mut self.env);
                 let env = Environment::enclose(prev_env);
-                let code = self.exec_block(stmts, env);
-                return code;
+                return self.exec_block(stmts, env);
             }
             Stmt::If { cond, then_br, else_br }   => {
                 let cond_val = self.eval(cond)?;
