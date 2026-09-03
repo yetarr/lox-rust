@@ -31,6 +31,7 @@ pub enum Expr {
         op: Token,
         right: Box<Expr>,
     },
+    
     Ternary {
         cond: Box<Expr>,
         first: Box<Expr>,
