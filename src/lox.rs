@@ -65,7 +65,8 @@ impl Lox {
                 break;
             }
 
-            self.run(buf.clone().trim_end().to_string());
+            self.run(buf.clone().trim_end().
+                to_string());
             self.reset();
         }
 
