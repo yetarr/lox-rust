@@ -1,14 +1,14 @@
-pub mod evaluator;
-pub mod environment;
 pub mod callable;
+pub mod environment;
+pub mod evaluator;
 
 use std::rc::Rc;
 
-use crate::prelude::*;
 use crate::backend::interpreter::callable::LoxFn;
 use crate::backend::interpreter::environment::Environment;
 use crate::backend::native_fn;
 use crate::lox::Lox;
+use crate::prelude::*;
 
 #[derive(Debug)]
 enum ExecCode {
@@ -25,41 +25,55 @@ pub struct Interpreter<'a> {
 
 impl<'a> Interpreter<'a> {
     pub fn empty(lox: &'a mut Lox) -> Self {
-        Interpreter { lox, stmts: &[], env: Environment::global() }
+        Interpreter {
+            lox,
+            stmts: &[],
+            env: Environment::global(),
+        }
     }
-    
+
     pub fn new(lox: &'a mut Lox, stmts: &'a [Stmt]) -> Self {
         let mut global = Environment::global();
         global.define("clock", Some(native_fn::clock()));
-        
-        Interpreter { lox, stmts, env: global }
+
+        Interpreter {
+            lox,
+            stmts,
+            env: global,
+        }
     }
 
     pub fn interpret(&mut self) -> Result<(), RuntimeError> {
         let stmts = std::mem::take(&mut self.stmts);
         for s in stmts {
-            match self.exec(&s) {
-                Ok(_)  => {},
+            match self.exec(s) {
+                Ok(_) => {}
                 Err(e) => {
                     self.lox.error_runtime(&e);
-                    return Err(e)
-                },
+                    return Err(e);
+                }
             }
         }
         Ok(())
     }
 
-    fn exec(&mut self, stmt: &Stmt) -> Result<ExecCode, RuntimeError> {  
+    fn exec(&mut self, stmt: &Stmt) -> Result<ExecCode, RuntimeError> {
         match stmt {
-            Stmt::Print(val)                      => println!("{}", self.eval(&val)?.to_string()),
-            Stmt::Expression(expr)                => { self.eval(expr)?; },
-            Stmt::Break                           => return Ok(ExecCode::Break),
-            Stmt::Block(stmts)                    => {
+            Stmt::Print(val) => println!("{}", self.eval(val)?),
+            Stmt::Expression(expr) => {
+                self.eval(expr)?;
+            }
+            Stmt::Break => return Ok(ExecCode::Break),
+            Stmt::Block(stmts) => {
                 let prev_env = std::mem::take(&mut self.env);
                 let env = Environment::enclose(prev_env);
                 return self.exec_block(stmts, env);
             }
-            Stmt::If { cond, then_br, else_br }   => {
+            Stmt::If {
+                cond,
+                then_br,
+                else_br,
+            } => {
                 let cond_val = self.eval(cond)?;
                 if self.is_truthy(&cond_val) {
                     return self.exec(then_br);
@@ -69,52 +83,52 @@ impl<'a> Interpreter<'a> {
                     }
                 }
             }
-            Stmt::While { cond, block }           => {
-                loop {
-                    let cond_val = self.eval(cond)?;
-                    if self.is_truthy(&cond_val) {
-                        match self.exec(block)? {
-                            ExecCode::Success   => {},
-                            ExecCode::Break     => break,
-                            ExecCode::Return(v) => return Ok(ExecCode::Return(v))
-                        }
-                    } else {
-                        break;
+            Stmt::While { cond, block } => loop {
+                let cond_val = self.eval(cond)?;
+                if self.is_truthy(&cond_val) {
+                    match self.exec(block)? {
+                        ExecCode::Success => {}
+                        ExecCode::Break => break,
+                        ExecCode::Return(v) => return Ok(ExecCode::Return(v)),
                     }
+                } else {
+                    break;
                 }
-            }
-            Stmt::Var { name, init }              => {
+            },
+            Stmt::Var { name, init } => {
                 let val = match init {
                     Some(i) => Some(self.eval(i)?),
-                    None    => None,
+                    None => None,
                 };
                 self.env.define(&name.lex, val);
             }
             Stmt::Function { name, params, body } => {
-                let fun = Rc::new(
-                    LoxFn::new(name.clone(), params.clone(), body.clone())
-                );
+                let fun = Rc::new(LoxFn::new(name.clone(), params.clone(), body.clone()));
                 self.env.define(&name.lex, Some(LitVal::Callable(fun)));
             }
-            Stmt::Return { key: _, val }          => {
+            Stmt::Return { key: _, val } => {
                 let val = match val {
                     Some(v) => self.eval(v)?,
-                    None    => LitVal::Nil, 
+                    None => LitVal::Nil,
                 };
                 return Ok(ExecCode::Return(val));
             }
         };
-        
+
         Ok(ExecCode::Success)
     }
 
-    fn exec_block(&mut self, stmts: &Vec<Stmt>, env: Environment) -> Result<ExecCode, RuntimeError> {
+    fn exec_block(
+        &mut self,
+        stmts: &Vec<Stmt>,
+        env: Environment,
+    ) -> Result<ExecCode, RuntimeError> {
         self.env = env;
         for stmt in stmts {
             match self.exec(stmt)? {
-                ExecCode::Success   => {},
-                ExecCode::Break     => return Ok(ExecCode::Break),
-                ExecCode::Return(v) => return Ok(ExecCode::Return(v))
+                ExecCode::Success => {}
+                ExecCode::Break => return Ok(ExecCode::Break),
+                ExecCode::Return(v) => return Ok(ExecCode::Return(v)),
             }
         }
         self.env = self.env.take_env().unwrap();
@@ -124,8 +138,8 @@ impl<'a> Interpreter<'a> {
     fn is_truthy(&self, val: &LitVal) -> bool {
         match val {
             LitVal::Boolean(b) => *b,
-            LitVal::Nil        => false,
-            _others            => true
+            LitVal::Nil => false,
+            _others => true,
         }
     }
 }

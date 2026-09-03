@@ -1,21 +1,23 @@
-use crate::prelude::*;
 use crate::frontend::parser::{Parser, stmt::FunType};
+use crate::prelude::*;
 
 impl<'a> Parser<'a> {
     pub fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
-            return self.var_decl()
+            return self.var_decl();
         }
 
         if self.tkn_match(&[TokenT::Keyword(Keyword::Fun)]) {
-            return self.fun_decl(FunType::Function)
+            return self.fun_decl(FunType::Function);
         }
 
         self.statement()
     }
 
     fn var_decl(&mut self) -> Result<Stmt, ParseError> {
-        let name = self.consume(TokenT::Identifier, "Expect variable name.")?.clone();
+        let name = self
+            .consume(TokenT::Identifier, "Expect variable name.")?
+            .clone();
         let mut init: Option<Expr> = None;
         if self.tkn_match(&[TokenT::Equal]) {
             init = Some(self.expression()?);
@@ -31,8 +33,13 @@ impl<'a> Parser<'a> {
             return self.statement();
         }
 
-        let name = self.consume(TokenT::Identifier, &format!("Expect {} name.", fun_t))?.clone();
-        self.consume(TokenT::LeftParen, &format!("Expect '(' after {} name.", fun_t))?;
+        let name = self
+            .consume(TokenT::Identifier, &format!("Expect {} name.", fun_t))?
+            .clone();
+        self.consume(
+            TokenT::LeftParen,
+            &format!("Expect '(' after {} name.", fun_t),
+        )?;
 
         let (params, body) = self.parameters(fun_t)?;
         Ok(Stmt::Function { name, params, body })
@@ -87,7 +94,11 @@ impl<'a> Parser<'a> {
             else_opt = Some(Box::new(self.statement()?));
         }
 
-        Ok(Stmt::If { cond, then_br: Box::new(then), else_br: else_opt })
+        Ok(Stmt::If {
+            cond,
+            then_br: Box::new(then),
+            else_br: else_opt,
+        })
     }
 
     fn while_stmt(&mut self) -> Result<Stmt, ParseError> {
@@ -98,18 +109,20 @@ impl<'a> Parser<'a> {
         let block = self.statement()?;
         self.loop_depth -= 1;
 
-        Ok(Stmt::While { cond, block: Box::new(block) })
+        Ok(Stmt::While {
+            cond,
+            block: Box::new(block),
+        })
     }
 
     fn for_stmt(&mut self) -> Result<Stmt, ParseError> {
         self.consume(TokenT::LeftParen, "Expect '(' after 'while'.")?;
 
-        let init;
-        if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
-            init = Some(self.var_decl()?);
+        let init = if self.tkn_match(&[TokenT::Keyword(Keyword::Var)]) {
+            Some(self.var_decl()?)
         } else {
-            init = Some(self.expr_stmt()?);
-        }
+            Some(self.expr_stmt()?)
+        };
 
         let mut cond = None;
         if !self.check_cur(&TokenT::Semicolon) {
@@ -132,10 +145,13 @@ impl<'a> Parser<'a> {
         }
 
         body = match cond {
-            Some(cond) => Stmt::While { cond, block: Box::new(body) },
-            None       => Stmt::While {
+            Some(cond) => Stmt::While {
+                cond,
+                block: Box::new(body),
+            },
+            None => Stmt::While {
                 cond: Expr::Literal(LitVal::Boolean(true)),
-                block: Box::new(body)
+                block: Box::new(body),
             },
         };
 
@@ -148,7 +164,10 @@ impl<'a> Parser<'a> {
 
     fn break_stmt(&mut self) -> Result<Stmt, ParseError> {
         if self.loop_depth == 0 {
-            return Err(ParseError::new(self.previous().clone(), "'break' outside of loop."))
+            return Err(ParseError::new(
+                self.previous().clone(),
+                "'break' outside of loop.",
+            ));
         }
         self.consume(TokenT::Semicolon, "Expect ';' after 'break'")?;
         Ok(Stmt::Break)

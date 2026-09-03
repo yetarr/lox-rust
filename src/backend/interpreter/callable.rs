@@ -1,6 +1,8 @@
-use crate::prelude::*;
 use crate::backend::interpreter::environment::Environment;
 use crate::backend::interpreter::{ExecCode, Interpreter};
+use crate::prelude::*;
+
+type Function = Box<dyn Fn(&mut Interpreter, Vec<LitVal>) -> Result<LitVal, RuntimeError>>;
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -12,7 +14,7 @@ pub trait Callable: std::fmt::Debug {
 pub struct LoxFn {
     name: Token,
     params: Vec<Token>,
-    body: Vec<Stmt>
+    body: Vec<Stmt>,
 }
 
 impl LoxFn {
@@ -49,7 +51,7 @@ impl Callable for LoxFn {
 #[derive(Debug)]
 pub struct AnonymousFn {
     params: Vec<Token>,
-    body: Vec<Stmt>
+    body: Vec<Stmt>,
 }
 
 impl AnonymousFn {
@@ -85,7 +87,7 @@ impl Callable for AnonymousFn {
 
 pub struct NativeFn {
     pub arity: usize,
-    pub func: Box<dyn Fn(&mut Interpreter, Vec<LitVal>) -> Result<LitVal, RuntimeError>>,
+    pub func: Function,
 }
 
 impl std::fmt::Debug for NativeFn {
@@ -102,8 +104,12 @@ impl Callable for NativeFn {
     fn to_string(&self) -> String {
         String::from("<native fn>")
     }
-    
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<LitVal>) -> Result<LitVal, RuntimeError> {
+
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: Vec<LitVal>,
+    ) -> Result<LitVal, RuntimeError> {
         (self.func)(interpreter, args)
     }
 }

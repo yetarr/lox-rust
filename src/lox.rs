@@ -1,6 +1,6 @@
+use std::io::{Write, stdin, stdout};
 use std::process::exit;
 use std::{fs::File, io::Read};
-use std::io::{Write, stdin, stdout};
 
 use anyhow::Result;
 
@@ -8,8 +8,8 @@ use crate::prelude::*;
 
 use crate::backend::interpreter::Interpreter;
 use crate::error::LoxErr;
-use crate::frontend::parser::Parser;
 use crate::frontend::lexer::Scanner;
+use crate::frontend::parser::Parser;
 
 const DATA_FORMAT_ERROR: i32 = 65;
 const INTERNAL_SOFTWARE_ERROR: i32 = 70;
@@ -20,17 +20,27 @@ pub struct Lox {
     had_runtime_err: bool,
 }
 
+impl Default for Lox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Lox {
     pub fn new() -> Self {
-        Lox { errors: Vec::new(), had_parse_err: false, had_runtime_err: false }
+        Lox {
+            errors: Vec::new(),
+            had_parse_err: false,
+            had_runtime_err: false,
+        }
     }
 
     fn reset(&mut self) {
         self.had_parse_err = false;
         self.had_runtime_err = false;
         self.errors.clear();
-    } 
-    
+    }
+
     pub fn run_file(&mut self, file: String) -> Result<()> {
         let mut file = File::open(file)?;
         let mut code = String::new();
@@ -43,26 +53,25 @@ impl Lox {
     pub fn run_prompt(&mut self) -> Result<()> {
         let stdin = stdin();
         let buf = &mut String::new();
-    
+
         loop {
             buf.clear();
             print!("> ");
             stdout().flush().unwrap();
-            if let Ok(c) = stdin.read_line(buf) {
-                if c == 0 {
-                    println!();
-                    break;
-                }
+            if let Ok(c) = stdin.read_line(buf)
+                && c == 0
+            {
+                println!();
+                break;
             }
-    
+
             self.run(buf.clone().trim_end().to_string());
             self.reset();
         }
-    
+
         Ok(())
     }
 
-    
     fn run(&mut self, code: String) {
         let tkns = {
             let mut scr = Scanner::new(code, self);
@@ -90,15 +99,15 @@ impl Lox {
                     exit(INTERNAL_SOFTWARE_ERROR)
                 }
             }
-            None => {    
-                let expr = { 
+            None => {
+                let expr = {
                     let mut parser = Parser::new(&tkns, self);
                     parser.expression()
                 };
                 if let Ok(expr) = expr {
                     let mut intr = Interpreter::empty(self);
                     if let Ok(val) = intr.eval(&expr) {
-                        println!("{}", val.to_string());
+                        println!("{}", val);
                     } else {
                         self.report_errors();
                     }
@@ -120,10 +129,10 @@ impl Lox {
                 let msg = format!("[line {}] Error{}: {}", tkn.ln, " at end", msg);
                 self.errors.push(LoxErr::new(msg));
             }
-            _           => {
+            _ => {
                 let msg = format!("[line {}] Error at {}: {}", tkn.ln, tkn.lex, msg);
                 self.errors.push(LoxErr::new(msg));
-            },
+            }
         }
         self.had_parse_err = true;
     }

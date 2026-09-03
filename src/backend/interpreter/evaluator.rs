@@ -1,23 +1,27 @@
 use std::rc::Rc;
 
-use crate::prelude::*;
+use crate::backend::interpreter::Interpreter;
 use crate::backend::interpreter::callable::AnonymousFn;
 use crate::backend::utils::{binary_op, validator};
-use crate::backend::interpreter::Interpreter;
+use crate::prelude::*;
 
 impl<'a> Interpreter<'a> {
     pub fn eval(&mut self, expr: &Expr) -> Result<LitVal, RuntimeError> {
         match expr {
-            Expr::Literal(lit)                 => Ok(self.eval_lit(lit)),
-            Expr::Grouping(inner)              => self.eval_group(inner),
-            Expr::Unary { op, right }          => self.eval_unary(op, right),
-            Expr::Binary { left, op, right }   => self.eval_bin(left, op, right),
-            Expr::Logical { left, op, right }  => self.eval_logic(left, op, right),
-            Expr::Variable(name)               => self.eval_var(name),
-            Expr::Assign { name, val }         => self.eval_assign(name, val),
-            Expr::AnonFun { params, body }     => self.eval_anon_fun(params.clone(), body.clone()),
-            Expr::Call { callee, paren, args } => self.eval_call(callee, paren, args),
-            _                                  => Ok(LitVal::Nil)
+            Expr::Literal(lit) => Ok(self.eval_lit(lit)),
+            Expr::Grouping(inner) => self.eval_group(inner),
+            Expr::Unary { op, right } => self.eval_unary(op, right),
+            Expr::Binary { left, op, right } => self.eval_bin(left, op, right),
+            Expr::Logical { left, op, right } => self.eval_logic(left, op, right),
+            Expr::Variable(name) => self.eval_var(name),
+            Expr::Assign { name, val } => self.eval_assign(name, val),
+            Expr::AnonFun { params, body } => self.eval_anon_fun(params.clone(), body.clone()),
+            Expr::Call {
+                callee,
+                paren,
+                args,
+            } => self.eval_call(callee, paren, args),
+            _ => Ok(LitVal::Nil),
         }
     }
 
@@ -39,15 +43,20 @@ impl<'a> Interpreter<'a> {
         self.eval(inner)
     }
 
-    fn eval_logic(&mut self, left: &Expr, op: &Token, right: &Expr) -> Result<LitVal, RuntimeError> {
+    fn eval_logic(
+        &mut self,
+        left: &Expr,
+        op: &Token,
+        right: &Expr,
+    ) -> Result<LitVal, RuntimeError> {
         let left = self.eval(left)?;
         match op.token_t {
-            TokenT::Keyword(Keyword::Or)  => {
-                if self.is_truthy(&left) { return Ok(left) }
-            },
-            TokenT::Keyword(Keyword::And) => {
-                if !self.is_truthy(&left) { return Ok(left) }
-            },
+            TokenT::Keyword(Keyword::Or) => {
+                if self.is_truthy(&left) {
+                    return Ok(left);
+                }
+            }
+            TokenT::Keyword(Keyword::And) if !self.is_truthy(&left) => return Ok(left),
             _ => {}
         }
         self.eval(right)
@@ -57,8 +66,8 @@ impl<'a> Interpreter<'a> {
         let right = self.eval(right)?;
         let val = match op.token_t {
             TokenT::Minus => LitVal::Number(-validator::check_num(op, right.as_number())?),
-            TokenT::Bang  => LitVal::Boolean(self.is_truthy(&right)),
-            _ => LitVal::Nil
+            TokenT::Bang => LitVal::Boolean(self.is_truthy(&right)),
+            _ => LitVal::Nil,
         };
         Ok(val)
     }
@@ -68,27 +77,36 @@ impl<'a> Interpreter<'a> {
         let right = self.eval(right)?;
 
         match op.token_t {
-            TokenT::Minus        => binary_op::minus(op, &left, &right),
-            TokenT::Plus         => binary_op::plus(op, &left, &right),
-            TokenT::Slash        => binary_op::div(op, &left, &right),
-            TokenT::Star         => binary_op::mult(op, &left, &right),
-            TokenT::Greater      => binary_op::greater(op, &left, &right),
+            TokenT::Minus => binary_op::minus(op, &left, &right),
+            TokenT::Plus => binary_op::plus(op, &left, &right),
+            TokenT::Slash => binary_op::div(op, &left, &right),
+            TokenT::Star => binary_op::mult(op, &left, &right),
+            TokenT::Greater => binary_op::greater(op, &left, &right),
             TokenT::GreaterEqual => binary_op::greater_eq(op, &left, &right),
-            TokenT::Less         => binary_op::less(op, &left, &right),
-            TokenT::LessEqual    => binary_op::less_eq(op, &left, &right),
-            TokenT::BangEqual    => binary_op::not_eq(&left, &right),
-            TokenT::EqualEqual   => binary_op::eq(&left, &right),
-            TokenT::Comma        => Ok(right),
-            _                    => Ok(LitVal::Nil)
+            TokenT::Less => binary_op::less(op, &left, &right),
+            TokenT::LessEqual => binary_op::less_eq(op, &left, &right),
+            TokenT::BangEqual => binary_op::not_eq(&left, &right),
+            TokenT::EqualEqual => binary_op::eq(&left, &right),
+            TokenT::Comma => Ok(right),
+            _ => Ok(LitVal::Nil),
         }
     }
 
-    fn eval_anon_fun(&mut self, params: Vec<Token>, body: Vec<Stmt>) -> Result<LitVal, RuntimeError> {
+    fn eval_anon_fun(
+        &mut self,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+    ) -> Result<LitVal, RuntimeError> {
         let fun = AnonymousFn::new(params, body);
         Ok(LitVal::Callable(Rc::new(fun)))
     }
 
-    fn eval_call(&mut self, callee: &Expr, paren: &Token, args: &Vec<Expr>) -> Result<LitVal, RuntimeError> {
+    fn eval_call(
+        &mut self,
+        callee: &Expr,
+        paren: &Token,
+        args: &Vec<Expr>,
+    ) -> Result<LitVal, RuntimeError> {
         let callee = self.eval(callee)?;
         let mut args_val = Vec::new();
         for arg in args {
@@ -98,20 +116,22 @@ impl<'a> Interpreter<'a> {
         match callee {
             LitVal::Callable(func) => {
                 if func.arity() != args.len() {
-                    return Err(
-                        RuntimeError::new(
-                            paren, 
-                            &format!(
-                                "Expected {} arguments but got {}", 
-                                func.arity(), 
-                                args_val.len())
-                        )
-                    );
+                    return Err(RuntimeError::new(
+                        paren,
+                        &format!(
+                            "Expected {} arguments but got {}",
+                            func.arity(),
+                            args_val.len()
+                        ),
+                    ));
                 }
 
                 func.call(self, args_val)
             }
-            _ => return Err(RuntimeError::new(paren, "Can only call functions and classes."))
+            _ => Err(RuntimeError::new(
+                paren,
+                "Can only call functions and classes.",
+            )),
         }
     }
 }

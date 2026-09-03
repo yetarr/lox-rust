@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use crate::frontend::lexer::token::LitVal;
 use crate::backend::interpreter::callable::NativeFn;
+use crate::frontend::lexer::token::LitVal;
 
 pub fn clock() -> LitVal {
     LitVal::Callable(Rc::new(NativeFn {

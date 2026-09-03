@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use crate::frontend::parser::expr::Expr;
 use crate::frontend::lexer::token::Token;
+use crate::frontend::parser::expr::Expr;
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -16,7 +16,7 @@ pub enum Stmt {
     },
     While {
         cond: Expr,
-        block: Box<Stmt>
+        block: Box<Stmt>,
     },
     Var {
         name: Token,
@@ -25,24 +25,24 @@ pub enum Stmt {
     Function {
         name: Token,
         params: Vec<Token>,
-        body: Vec<Stmt>
+        body: Vec<Stmt>,
     },
     Return {
         key: Token,
         val: Option<Expr>,
-    }
+    },
 }
 
 pub enum FunType {
     Function,
-    Method
+    Method,
 }
 
 impl Display for FunType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FunType::Function => write!(f, "function"),
-            FunType::Method   => write!(f, "method")
+            FunType::Method => write!(f, "method"),
         }
     }
 }

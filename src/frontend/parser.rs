@@ -1,16 +1,16 @@
 pub mod expr;
-pub mod stmt;
 pub mod rules;
+pub mod stmt;
 
-use crate::prelude::*;
 use crate::lox::Lox;
+use crate::prelude::*;
 
 pub struct Parser<'a> {
     tkns: &'a [Token],
     ptr: usize,
     lox: &'a mut Lox,
     loop_depth: u8,
-    in_args: bool
+    in_args: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -35,8 +35,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        if stmts.is_empty() { None }
-        else                { Some(stmts) }
+        if stmts.is_empty() { None } else { Some(stmts) }
     }
 
     fn tkn_match(&mut self, tkns_t: &[TokenT]) -> bool {
@@ -50,7 +49,9 @@ impl<'a> Parser<'a> {
     }
 
     fn check_cur(&self, token_t: &TokenT) -> bool {
-        if self.eof() { return false; }
+        if self.eof() {
+            return false;
+        }
         self.peek().token_t == *token_t
     }
 
@@ -63,11 +64,15 @@ impl<'a> Parser<'a> {
     }
 
     fn retreat(&mut self) {
-        if !self.eof() { self.ptr -= 1; }
+        if !self.eof() {
+            self.ptr -= 1;
+        }
     }
 
     fn advance(&mut self) -> &Token {
-        if !self.eof() { self.ptr += 1; }
+        if !self.eof() {
+            self.ptr += 1;
+        }
         self.previous()
     }
 
@@ -76,7 +81,9 @@ impl<'a> Parser<'a> {
     }
 
     fn consume(&mut self, token_t: TokenT, msg: &str) -> Result<&Token, ParseError> {
-        if self.check_cur(&token_t) { return Ok(self.advance()); }
+        if self.check_cur(&token_t) {
+            return Ok(self.advance());
+        }
         let tkn = self.peek().clone();
         Err(ParseError::new(tkn, msg))
     }
@@ -94,12 +101,15 @@ impl<'a> Parser<'a> {
             }
 
             match self.peek().token_t {
-                TokenT::Keyword(kw) => match kw {
-                    Keyword::Return | Keyword::Class | Keyword::For |
-                    Keyword::Fun    | Keyword::Var   | Keyword::If  |
-                    Keyword::While  => return,
-                    _ => self.advance(),
-                }
+                TokenT::Keyword(
+                    Keyword::Return
+                    | Keyword::Class
+                    | Keyword::For
+                    | Keyword::Fun
+                    | Keyword::Var
+                    | Keyword::If
+                    | Keyword::While,
+                ) => return,
                 _ => self.advance(),
             };
         }

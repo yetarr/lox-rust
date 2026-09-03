@@ -1,5 +1,5 @@
-use std::{env, process::exit};
 use anyhow::Result;
+use std::{env, process::exit};
 
 use lox_rust::lox;
 

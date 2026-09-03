@@ -2,7 +2,7 @@ use crate::frontend::lexer::token::Token;
 
 #[derive(Debug)]
 pub struct LoxErr {
-    pub msg: String
+    pub msg: String,
 }
 
 impl LoxErr {
@@ -14,23 +14,29 @@ impl LoxErr {
 #[derive(Debug)]
 pub struct ParseError {
     pub tkn: Token,
-    pub msg: String
+    pub msg: String,
 }
 
 impl ParseError {
     pub fn new(tkn: Token, msg: &str) -> Self {
-        ParseError { tkn, msg: msg.to_string() }
+        ParseError {
+            tkn,
+            msg: msg.to_string(),
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct RuntimeError {
     pub tkn: Token,
-    pub msg: String
+    pub msg: String,
 }
 
 impl RuntimeError {
     pub fn new(tkn: &Token, msg: &str) -> Self {
-        Self { tkn: tkn.clone(), msg: msg.to_string() } 
+        Self {
+            tkn: tkn.clone(),
+            msg: msg.to_string(),
+        }
     }
 }

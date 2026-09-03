@@ -1,5 +1,5 @@
+use crate::backend::utils::validator::check_nums;
 use crate::prelude::*;
-use crate::backend::{utils::validator::check_nums};
 
 pub fn plus(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> {
     if let Some(s) = x.as_string() {
@@ -27,7 +27,7 @@ pub fn mult(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> 
 pub fn div(op: &Token, x: &LitVal, y: &LitVal) -> Result<LitVal, RuntimeError> {
     let (x, y) = check_nums(op, x.as_number(), y.as_number())?;
     if y == 0.0 {
-        return Err(RuntimeError::new(op, "Cannot perform division by 0."))
+        return Err(RuntimeError::new(op, "Cannot perform division by 0."));
     }
     Ok(LitVal::Number(x / y))
 }
@@ -67,22 +67,19 @@ fn string(mut x: String, y: String) -> LitVal {
 
 fn is_eq(x: &LitVal, y: &LitVal) -> bool {
     match x {
-        LitVal::Nil => match y {
-            LitVal::Nil => true,
-            _           => false
-        }
-        LitVal::Number(n1)  => match y {
+        LitVal::Nil => matches!(y, LitVal::Nil),
+        LitVal::Number(n1) => match y {
             LitVal::Number(n2) => n1 == n2,
-            _                 => false
-        }
-        LitVal::String(s1)  => match y {
+            _ => false,
+        },
+        LitVal::String(s1) => match y {
             LitVal::String(s2) => s1.eq(s2),
-            _                 => false
-        }
+            _ => false,
+        },
         LitVal::Boolean(b1) => match y {
             LitVal::Boolean(b2) => b1 == b2,
-            _                  => false
+            _ => false,
         },
-        _ => false
+        _ => false,
     }
 }
